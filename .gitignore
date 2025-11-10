@@ -1,0 +1,6 @@
+/package*.json
+/target/
+/.classpath
+/.project
+/.settings/
+/node_modules/

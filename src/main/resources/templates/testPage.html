@@ -1,0 +1,36 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org">
+<html>
+    <head>
+        <link rel="stylesheet" th:href="@{/css/total.css}" />
+        <link rel="stylesheet" th:href="@{/css/testPage.css}" />
+        <meta name="csrf-header" th:content="${_csrf.headerName}" />
+        <meta name="csrf-token" th:content="${_csrf.token}" />
+        <script defer th:src="@{/js/testPage.js}"></script>
+    </head>
+    <body>
+        <form method="post" id="logoutForm" th:action="@{/logout}">
+            <button type="submit">Exit</button>
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+        </form>
+        <h1>
+            <span th:text="${student.getFullName() + ' gr. ' + student.getGroup().getName()}"></span>,
+            ( <span id="totalResult" th:text="${resultInfo.getTotalResult()}"></span> %)
+        </h1>
+        <h2>Task - <span th:text="${taskIndexFromOne + '/' + numberOfTasks}"></span>,
+            Status - <span id="taskStatus" th:text="${resultInfo.getTaskStatusForHuman()}"></span></h2>
+        <p th:text="${currentTaskDescription}" id="taskDescription"></p>
+        <div id="codeExecutionEnv">
+            <div id="codeArea" th:text="${taskCode}"></div>
+            <div id="outputArea"></div>
+        </div>
+        <div id="runCodeAndNextTaskButtons">
+            <div>
+                <button type="button" id="runCodeButton">Run code</button>
+            </div>
+            <div>
+                <button type="button" id="goNextTaskButton">Next task</button>
+            </div>
+        </div>
+    </body>
+</html>

@@ -1,0 +1,67 @@
+body {
+    justify-content: flex-start;
+    align-items: flex-start;
+}
+
+#logoutForm {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+}
+
+h1 {
+    font-size: 24px;
+    margin: 8px;
+}
+
+h2 {
+    font-size: 20px;
+    margin: 8px;
+}
+
+#taskDescription {
+    font-size: 16px;
+    user-select: none;
+    margin: 8px;
+}
+
+#codeExecutionEnv {
+    display: flex;
+    flex-direction: row;
+    height: 75%;
+    width: 100%;
+}
+
+#codeExecutionEnv > div {
+    height: 100%;
+    width: 50%;
+    margin: 5px;
+    padding: 5px;
+    background-color: #c8c8c8;
+    border-radius: 10px;
+    font-size: 16px;
+}
+
+#codeArea {
+    overflow: scroll;
+}
+
+#outputArea {
+    overflow: scroll;
+    white-space: pre;
+}
+
+#runCodeAndNextTaskButtons {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    margin-top: 15px;
+    margin-bottom: 5px;
+}
+
+#runCodeAndNextTaskButtons > div {
+    width: 50%;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+}

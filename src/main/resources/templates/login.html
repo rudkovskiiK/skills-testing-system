@@ -1,0 +1,24 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org">
+    <head>
+        <link rel="stylesheet" th:href="@{/css/total.css}" />
+        <link rel="stylesheet" th:href="@{/css/login.css}" />
+    </head>
+    <body>
+        <div th:if="${param.error}">
+            Incorrect login or password!
+        </div>
+        <div th:if="${param.logout}">
+            You have been logged out!
+        </div>
+        <form method="post" th:action="@{/login}">
+            <select name="username">
+                <option disabled selected>Select yourself from the list</option>
+                <option th:each="s : ${students}" th:value="${s.getId()}"
+                    th:text="${s.getFullName() + ' (' + s.getGroup().getName() + ')'}" />
+            </select>
+            <input type="password" name="password" placeholder="password" />
+            <button type="submit">Submit</button>
+        </form>
+    </body>
+</html>
