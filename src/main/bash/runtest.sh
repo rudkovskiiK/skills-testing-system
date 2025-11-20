@@ -140,9 +140,14 @@ while read line; do
         echo 'SELECT id, name FROM groups' | sqlite3 -header "$dbFile" | column -t -s '|' -o ' | ' | sed 's/^/ /'
     elif checkCmd "$line" '^s$'; then
         printStudents | sed 's/^/ /'
+    elif checkCmd "$line" '^s csv$'; then
+        printStudents | sed 's/\s*|\s*/,/g'
     elif checkCmd "$line" '^sg \d+$'; then
         groupId="$(echo "$line" | cut -d ' ' -f 2)"
         printStudents "$groupId" | sed 's/^/ /'
+    elif checkCmd "$line" '^sg \d+ csv$'; then
+        groupId="$(echo "$line" | cut -d ' ' -f 2)"
+        printStudents "$groupId" | sed 's/\s*|\s*/,/g'
     elif checkCmd "$line" '^lp [tf]$'; then
         flag="$(echo "$line" | cut -d ' ' -f 2 | tr 't' '1' | tr 'f' '0')"
         echo "UPDATE students SET login_permission = $flag" | sqlite3 "$dbFile"
@@ -254,7 +259,9 @@ while read line; do
     elif checkCmd "$line" '^h$'; then
         echo 'g - print list of all student groups' | sed 's/^/ /'
         echo 's - print list of all students' | sed 's/^/ /'
+        echo 's csv - print list of all students in csv format' | sed 's/^/ /'
         echo 'sg <group_id> - print a list of all students in the group' | sed 's/^/ /'
+        echo 'sg <group_id> csv - print a list of all students in the group in csv format' | sed 's/^/ /'
         echo 'lp t|f - set the login permission flag for all students' | sed 's/^/ /'
         echo 'lp <student_id> t|f - set the login permission flag for student' | sed 's/^/ /'
         echo 'lpg <group_id> t|f - set the login permission flag for all students in the group' | sed 's/^/ /'
