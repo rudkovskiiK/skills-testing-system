@@ -275,6 +275,7 @@ bwrap \
 --symlink /usr/lib /lib \
 --symlink /usr/lib64 /lib64 \
 --ro-bind /etc /etc \
+--setenv HOME /home/student \
 --dev /dev \
 --ro-bind "$(pwd)/lib/pyenv" /pyenv \
 --ro-bind "$(pwd)/work-tmp/code/$studentId.py" /code.py \
