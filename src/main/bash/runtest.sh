@@ -155,7 +155,7 @@ while read line; do
     elif checkCmd "$line" '^lp [tf]$'; then
         flag="$(echo "$line" | cut -d ' ' -f 2 | tr 't' '1' | tr 'f' '0')"
         echo "UPDATE students SET login_permission = $flag" | sqlite3 "$dbFile"
-    elif checkCmd "$line" '^lp \d+ [tf]$'; then
+    elif checkCmd "$line" '^lps \d+ [tf]$'; then
         studentId="$(echo "$line" | cut -d ' ' -f 2)"
         flag="$(echo "$line" | cut -d ' ' -f 3 | tr 't' '1' | tr 'f' '0')"
         n="$(echo "SELECT COUNT(*) FROM students WHERE id = $studentId" | sqlite3 "$dbFile")"
@@ -267,7 +267,7 @@ while read line; do
         echo 'sg <group_id> - print a list of all students in the group' | indent
         echo 'sg <group_id> csv - print a list of all students in the group in csv format' | indent
         echo 'lp t|f - set the login permission flag for all students' | indent
-        echo 'lp <student_id> t|f - set the login permission flag for student' | indent
+        echo 'lps <student_id> t|f - set the login permission flag for student' | indent
         echo 'lpg <group_id> t|f - set the login permission flag for all students in the group' | indent
         echo "st <student_id> - show student task id's" | indent
         echo "stc <student_id> <task_id> - show the description and code of the student's solution to the task" | indent
