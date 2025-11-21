@@ -89,6 +89,10 @@ getStudentResult() {
     printf "%.2f" $result
 }
 
+indent() {
+    sed 's/^/ /'
+}
+
 printStudents() {
     students=""
     if [ $# -eq 1 ]; then
@@ -98,7 +102,7 @@ printStudents() {
             students="$(echo "SELECT s.id, s.full_name, s.login_permission, g.name\
                        FROM students AS s JOIN groups AS g ON s.group_id = g.id WHERE s.group_id = $groupId" | sqlite3 "$dbFile")"
         else
-            echo -e '\033[33mError: no such group id!\033[0m'
+            echo -e '\033[33mError: no such group id!\033[0m' | indent >&2
             return 1
         fi
     else
@@ -137,14 +141,14 @@ echo -en "\033[32m>> \033[0m"
 while read line; do
     line="$(echo "$line" | tr '\t' ' ' | tr -s ' ')"
     if checkCmd "$line" '^g$'; then
-        echo 'SELECT id, name FROM groups' | sqlite3 -header "$dbFile" | column -t -s '|' -o ' | ' | sed 's/^/ /'
+        echo 'SELECT id, name FROM groups' | sqlite3 -header "$dbFile" | column -t -s '|' -o ' | ' | indent
     elif checkCmd "$line" '^s$'; then
-        printStudents | sed 's/^/ /'
+        printStudents | indent
     elif checkCmd "$line" '^s csv$'; then
         printStudents | sed 's/\s*|\s*/,/g'
     elif checkCmd "$line" '^sg \d+$'; then
         groupId="$(echo "$line" | cut -d ' ' -f 2)"
-        printStudents "$groupId" | sed 's/^/ /'
+        printStudents "$groupId" | indent
     elif checkCmd "$line" '^sg \d+ csv$'; then
         groupId="$(echo "$line" | cut -d ' ' -f 2)"
         printStudents "$groupId" | sed 's/\s*|\s*/,/g'
@@ -156,7 +160,7 @@ while read line; do
         flag="$(echo "$line" | cut -d ' ' -f 3 | tr 't' '1' | tr 'f' '0')"
         n="$(echo "SELECT COUNT(*) FROM students WHERE id = $studentId" | sqlite3 "$dbFile")"
         if [ "$n" -eq 0 ]; then
-            echo -e '\033[33mError: no such student id!\033[0m' | sed 's/^/ /'
+            echo -e '\033[33mError: no such student id!\033[0m' | indent
         else
             echo "UPDATE students SET login_permission = $flag WHERE id = $studentId" | sqlite3 "$dbFile"
         fi
@@ -165,7 +169,7 @@ while read line; do
         flag="$(echo "$line" | cut -d ' ' -f 3 | tr 't' '1' | tr 'f' '0')"
         n="$(echo "SELECT COUNT(*) FROM groups WHERE id = $groupId" | sqlite3 "$dbFile")"
         if [ "$n" -eq 0 ]; then
-            echo -e '\033[33mError: no such group id!\033[0m' | sed 's/^/ /'
+            echo -e '\033[33mError: no such group id!\033[0m' | indent
         else
             echo "UPDATE students SET login_permission = $flag WHERE group_id = $groupId" | sqlite3 "$dbFile"
         fi
@@ -173,41 +177,41 @@ while read line; do
         studentId="$(echo "$line" | cut -d ' ' -f 2)"
         n="$(echo "SELECT COUNT(*) FROM students WHERE id = $studentId" | sqlite3 "$dbFile")"
         if [ "$n" -eq 0 ]; then
-            echo -e '\033[33mError: no such student id!\033[0m' | sed 's/^/ /'
+            echo -e '\033[33mError: no such student id!\033[0m' | indent
         else
             allTasks=($(echo "SELECT task_id FROM students_tasks WHERE student_id = $studentId ORDER BY task_id" | sqlite3 "$dbFile" | tr '\n' ' '))
             solvedTasks=($(echo "SELECT task_id FROM results WHERE student_id = $studentId AND status = 1 ORDER BY task_id" | sqlite3 "$dbFile" | tr '\n' ' '))
-            echo "all: ${allTasks[*]}" | sed 's/^/ /'
-            echo "solved: ${solvedTasks[*]}" | sed 's/^/ /'
+            echo "all: ${allTasks[*]}" | indent
+            echo "solved: ${solvedTasks[*]}" | indent
             if [ "${#allTasks[*]}" -gt 0 ]; then
                 nextTaskClickCount="$(echo "SELECT next_task_click_count FROM students WHERE id = $studentId" | sqlite3 "$dbFile")"
                 currentTaskIndex=$(( $nextTaskClickCount % ${#allTasks[*]} ))
-                echo "current: ${allTasks[$currentTaskIndex]}" | sed 's/^/ /'
+                echo "current: ${allTasks[$currentTaskIndex]}" | indent
             fi
         fi
     elif checkCmd "$line" '^stc \d+ \d+$'; then
         studentId="$(echo "$line" | cut -d ' ' -f 2)"
         taskId="$(echo "$line" | cut -d ' ' -f 3)"
-        resultId="$(echo "SELECT id FROM results WHERE student_id = $studentId AND task_id = $taskId" | sqlite3 "$dbFile")" 
+        resultId="$(echo "SELECT id FROM results WHERE student_id = $studentId AND task_id = $taskId" | sqlite3 "$dbFile")"
 
         if [ -z "$resultId" ]; then
             ns="$(echo "SELECT COUNT(*) FROM students WHERE id = $studentId" | sqlite3 "$dbFile")"
             nt="$(echo "SELECT COUNT(*) FROM tasks WHERE id = $taskId" | sqlite3 "$dbFile")"
             nst="$(echo "SELECT COUNT(*) FROM students_tasks WHERE student_id = $studentId AND task_id = $taskId" | sqlite3 "$dbFile")"
             if [ "$ns" -eq 0 ]; then
-                echo -e "\033[33mError: no such student with id = $studentId!\033[0m" | sed 's/^/ /'
+                echo -e "\033[33mError: no such student with id = $studentId!\033[0m" | indent
             elif [ "$nt" -eq 0 ]; then
-                echo -e "\033[33mError: no such task with id = $taskId!\033[0m" | sed 's/^/ /'
+                echo -e "\033[33mError: no such task with id = $taskId!\033[0m" | indent
             elif [ "$nst" -eq 0 ]; then
-                echo -e "\033[33mError: Task with id = $taskId is not assigned to student with id = $studentId\033[0m" | sed 's/^/ /'
+                echo -e "\033[33mError: Task with id = $taskId is not assigned to student with id = $studentId\033[0m" | indent
             else
-                echo -e "\033[33mError: student with id = $studentId has not yet started solving task with id = $taskId!\033[0m" | sed 's/^/ /'
+                echo -e "\033[33mError: student with id = $studentId has not yet started solving task with id = $taskId!\033[0m" | indent
             fi
         else
             description="$(echo "SELECT description FROM tasks WHERE id = $taskId" | sqlite3 "$dbFile")"
             code="$(echo "SELECT code FROM results WHERE id = $resultId" | sqlite3 "$dbFile")"
-            echo -e "\033[35mdescription:\033[0m\n$description" | sed 's/^/ /'
-            echo -e "\033[35mcode:\033[0m\n$code" | sed 's/^/ /'
+            echo -e "\033[35mdescription:\033[0m\n$description"
+            echo -e "\033[35mcode:\033[0m\n$code"
         fi
     elif checkCmd "$line" '^start$'; then
         pushd "$testDir" &> /dev/null
@@ -219,7 +223,7 @@ while read line; do
         while [ $curLogNumLine -gt $logNumLine ]
         do
             numNewLines=$(( $curLogNumLine - $logNumLine ))
-            cat "$logFile" | tail -n $numNewLines | sed 's/^/ /'
+            cat "$logFile" | tail -n $numNewLines | indent
             logNumLine=$curLogNumLine
             sleep 2
             curLogNumLine=$(cat "$logFile" | wc -l)
@@ -229,13 +233,13 @@ while read line; do
             kill $STS_SERVER_PID
             STS_SERVER_PID=-1
         else
-            echo -e '\033[33mError: server not running!\033[0m' | sed 's/^/ /'
+            echo -e '\033[33mError: server not running!\033[0m' | indent
         fi
     elif checkCmd "$line" '^log$'; then
         curLogNumLine="$(cat "$logFile" | wc -l)"
         if [ $curLogNumLine -gt $logNumLine ]; then
             numNewLines=$(( $curLogNumLine - $logNumLine ))
-            cat "$logFile" | tail -n $numNewLines | sed 's/^/ /'
+            cat "$logFile" | tail -n $numNewLines | indent
             logNumLine=$curLogNumLine
         fi
     elif checkCmd "$line" '^inst [A-Za-z0-9-]+$'; then
@@ -251,30 +255,30 @@ while read line; do
         --ro-bind /etc /etc \
         --dev /dev \
         --bind "$(realpath $testDir)/lib/pyenv" /pyenv \
-        bash -c ". /pyenv/bin/activate;pip install $libName; deactivate" | sed 's/^/ /'
+        bash -c ". /pyenv/bin/activate;pip install $libName; deactivate" | indent
     elif checkCmd "$line" '^ip$'; then
-        ip address | sed 's/^/ /'
+        ip address | indent
     elif checkCmd "$line" '^q$'; then
         quit
     elif checkCmd "$line" '^h$'; then
-        echo 'g - print list of all student groups' | sed 's/^/ /'
-        echo 's - print list of all students' | sed 's/^/ /'
-        echo 's csv - print list of all students in csv format' | sed 's/^/ /'
-        echo 'sg <group_id> - print a list of all students in the group' | sed 's/^/ /'
-        echo 'sg <group_id> csv - print a list of all students in the group in csv format' | sed 's/^/ /'
-        echo 'lp t|f - set the login permission flag for all students' | sed 's/^/ /'
-        echo 'lp <student_id> t|f - set the login permission flag for student' | sed 's/^/ /'
-        echo 'lpg <group_id> t|f - set the login permission flag for all students in the group' | sed 's/^/ /'
-        echo "st <student_id> - show student task id's" | sed 's/^/ /'
-        echo "stc <student_id> <task_id> - show the description and code of the student's solution to the task" | sed 's/^/ /'
-        echo 'start - web server start' | sed 's/^/ /'
-        echo 'stop - web server stop' | sed 's/^/ /'
-        echo 'log - print server log' | sed 's/^/ /'
-        echo 'inst <python_package_name> - install python package into virtual environment inside sandbox' | sed 's/^/ /'
-        echo 'h - print this help' | sed 's/^/ /'
+        echo 'g - print list of all student groups' | indent
+        echo 's - print list of all students' | indent
+        echo 's csv - print list of all students in csv format' | indent
+        echo 'sg <group_id> - print a list of all students in the group' | indent
+        echo 'sg <group_id> csv - print a list of all students in the group in csv format' | indent
+        echo 'lp t|f - set the login permission flag for all students' | indent
+        echo 'lp <student_id> t|f - set the login permission flag for student' | indent
+        echo 'lpg <group_id> t|f - set the login permission flag for all students in the group' | indent
+        echo "st <student_id> - show student task id's" | indent
+        echo "stc <student_id> <task_id> - show the description and code of the student's solution to the task" | indent
+        echo 'start - web server start' | indent
+        echo 'stop - web server stop' | indent
+        echo 'log - print server log' | indent
+        echo 'inst <python_package_name> - install python package into virtual environment inside sandbox' | indent
+        echo 'h - print this help' | indent
     else
         if [ -n "$line" ]; then
-            echo -e '\033[33mError: invalid command, use help\033[0m' | sed 's/^/ /'
+            echo -e '\033[33mError: invalid command, use help\033[0m' | indent
         fi
     fi
     echo -en "\033[32m>> \033[0m"
