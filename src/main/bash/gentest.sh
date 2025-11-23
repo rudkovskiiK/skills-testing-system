@@ -31,9 +31,10 @@ mkdir -p "$testDir"
 printOk
 
 error() {
-   echo -e "\033[33m$1\033[0m" >&2 # $1 - message
-   rm -rf "$testDir"
-   exit 1
+    echo -e "\033[33m$1\033[0m" >&2 # $1 - message
+    find "$testDir/data" -type d -exec chmod 755 {} \;
+    rm -rf "$testDir"
+    exit 1
 }
 
 if [ ! -d "$groupDir" ]; then
@@ -85,7 +86,7 @@ if [ -d "$taskDir/data" ]; then
     if ls "$taskDir/data/"* &> /dev/null; then
         info "Copying files from directory \"$taskDir/data\"..."
         cp -r "$taskDir/data/"* "$testDir/data"
-        chmod -R 444 "$testDir/data/"*
+        chmod -R ugo-w "$testDir/data"
         printOk
     fi
 fi
