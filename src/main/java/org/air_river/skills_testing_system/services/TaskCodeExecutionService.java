@@ -12,6 +12,7 @@ import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.air_river.skills_testing_system.lib.exceptions.ExecTaskCodeException;
 import org.air_river.skills_testing_system.models.Student;
+import org.air_river.skills_testing_system.models.Task;
 
 @Service
 public class TaskCodeExecutionService {
@@ -41,7 +42,7 @@ public class TaskCodeExecutionService {
         }
     }
 
-    ExecResult execute(Student student, String code, String correctAnswer) throws ExecTaskCodeException {
+    ExecResult execute(Student student, String code, Task task) throws ExecTaskCodeException {
         if(numRunTasks >= runTasksMax) {
             queueForExec.add(Thread.currentThread().getId());
             while((numRunTasks >= runTasksMax) || (queueForExec.get(0) != Thread.currentThread().getId())) {
@@ -59,7 +60,7 @@ public class TaskCodeExecutionService {
             numRunTasks++;
             System.out.println("numRunTasks(+) = " + numRunTasks + " stud_id = " + student.getId());
         }
-        File codeFilePath = new File("./work-tmp/code/" + student.getId() + ".py");
+        File codeFilePath = new File("./work-tmp/code/" + student.getId() + ".txt");
         File outFilePath = new File("./work-tmp/out/" + student.getId() + ".txt");
         File msgFilePath = new File("./work-tmp/msg/" + student.getId() + ".txt");
         try(BufferedWriter bw = new BufferedWriter(new FileWriter(codeFilePath))) {
@@ -68,7 +69,7 @@ public class TaskCodeExecutionService {
             throw new ExecTaskCodeException("Error saving code file!");
         }
         try {
-            Process process = new ProcessBuilder("./tools/run-stud-code.sh", student.getId().toString(), correctAnswer).start();
+            Process process = new ProcessBuilder("./tools/run-stud-code.sh", student.getId().toString(), task.getAnswer(), task.getLanguage()).start();
             process.waitFor();
             String out = "";
             try(BufferedReader br = new BufferedReader(new FileReader(outFilePath))) {
