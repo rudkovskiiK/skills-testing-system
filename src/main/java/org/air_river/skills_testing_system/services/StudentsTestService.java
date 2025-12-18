@@ -145,6 +145,7 @@ public class StudentsTestService {
             Student student = getStudent(principal);
             model.addAttribute("student", student);
             model.addAttribute("taskIndexFromOne", getCurrentTask(student).map(t -> student.getTasks().indexOf(t) + 1).orElse(0));
+            model.addAttribute("language", getCurrentTask(student).map(t -> t.getLanguage()).orElse("py"));
             model.addAttribute("currentTaskDescription", getCurrentTask(student).map(t -> t.getDescription()).orElse("-------"));
             model.addAttribute("numberOfTasks", student.getTasks().size());
             model.addAttribute("resultInfo", getStudentResultInfo(student));

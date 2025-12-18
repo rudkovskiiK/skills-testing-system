@@ -1,6 +1,8 @@
 import {EditorView, basicSetup} from "codemirror"
 import {EditorState} from "@codemirror/state"
-import {python} from "@codemirror/lang-python"
+import {StreamLanguage} from "@codemirror/language"
+import {python} from "@codemirror/legacy-modes/mode/python"
+import {shell} from "@codemirror/legacy-modes/mode/shell"
 
 var runCodeButton = document.getElementById("runCodeButton");
 var goNextTaskButton = document.getElementById("goNextTaskButton");
@@ -9,6 +11,11 @@ var outputArea = document.getElementById("outputArea");
 var taskStatusSpan = document.getElementById("taskStatus");
 var totalResultSpan = document.getElementById("totalResult");
 
+let languages = new Map();
+languages.set("py", python);
+languages.set("sh", shell);
+let languageName = document.getElementById("taskLanguage").innerHTML;
+
 let code = codeArea.innerHTML;
 while(codeArea.firstChild) {
     codeArea.removeChild(codeArea.firstChild);
@@ -16,7 +23,7 @@ while(codeArea.firstChild) {
 
 let startState = EditorState.create({
     doc: code,
-    extensions: [basicSetup, python()],
+    extensions: [basicSetup, StreamLanguage.define(languages.get(languageName) || python)],
 });
 
 let editor = new EditorView({
