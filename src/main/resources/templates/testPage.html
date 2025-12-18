@@ -20,6 +20,7 @@
         <h2>Task - <span th:text="${taskIndexFromOne + '/' + numberOfTasks}"></span>,
             Status - <span id="taskStatus" th:text="${resultInfo.getTaskStatusForHuman()}"></span></h2>
         <p th:text="${currentTaskDescription}" id="taskDescription"></p>
+        <p>language: <span th:text="${language}" id="taskLanguage"></span></p>
         <div id="codeExecutionEnv">
             <div id="codeArea" th:text="${taskCode}"></div>
             <div id="outputArea"></div>

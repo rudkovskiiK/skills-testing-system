@@ -15,6 +15,7 @@ public class Task {
     private String description;
     private String answer;
     private Integer difficultyLevel;
+    private String language;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -49,6 +50,14 @@ public class Task {
         this.difficultyLevel = difficultyLevel;
     }
 
+    @Column(name = "language", nullable = false)
+    public String getLanguage() {
+        return language;
+    }
+    public void setLanguage(String language) {
+        this.language = language;
+    }
+
     @Override
     public boolean equals(Object obj) {
         if(this == obj) return true;
@@ -58,6 +67,7 @@ public class Task {
         if(!(description == null ? t.description == null : description.equals(t.description))) return false;
         if(!(answer == null ? t.answer == null : answer.equals(t.answer))) return false;
         if(!(difficultyLevel == null ? t.difficultyLevel == null : difficultyLevel.equals(t.difficultyLevel))) return false;
+        if(!(language == null ? t.language == null : language.equals(t.language))) return false;
         return true;
     }
 
@@ -67,6 +77,7 @@ public class Task {
         hash += description == null ? 0 : description.hashCode();
         hash += answer == null ? 0 : answer.hashCode();
         hash += difficultyLevel == null ? 0 : difficultyLevel.hashCode();
+        hash += language == null ? 0 : language.hashCode();
         return hash;
     }
 }

@@ -106,8 +106,7 @@ public class StudentsTestService {
         if(userCode.getCode() == null || getCurrentTaskResult(student).map(r -> r.getStatus()).orElse(false)) {
             return new SimpleTextResponse("");
         }
-        String correctAnswer = curTask.get().getAnswer();
-        TaskCodeExecutionService.ExecResult execResult = taskCodeExecutionService.execute(student, userCode.getCode(), correctAnswer);
+        TaskCodeExecutionService.ExecResult execResult = taskCodeExecutionService.execute(student, userCode.getCode(), curTask.get());
         Result result = getCurrentTaskResult(student).orElse(new Result(student, curTask.get()));
         result.setCode(userCode.getCode());
         result.setStatus(execResult.getExitStatus() == 0 ? true : false);
@@ -146,6 +145,7 @@ public class StudentsTestService {
             Student student = getStudent(principal);
             model.addAttribute("student", student);
             model.addAttribute("taskIndexFromOne", getCurrentTask(student).map(t -> student.getTasks().indexOf(t) + 1).orElse(0));
+            model.addAttribute("language", getCurrentTask(student).map(t -> t.getLanguage()).orElse("py"));
             model.addAttribute("currentTaskDescription", getCurrentTask(student).map(t -> t.getDescription()).orElse("-------"));
             model.addAttribute("numberOfTasks", student.getTasks().size());
             model.addAttribute("resultInfo", getStudentResultInfo(student));

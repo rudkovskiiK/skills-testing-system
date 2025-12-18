@@ -5,16 +5,11 @@ info() {
    echo -en "\033[32m$1\033[0m" # $1 - message
 }
 printOk() {
-   echo -e "\033[32mOK\033[0m" # $1 - message
+   echo -e "\033[32mOK\033[0m"
 }
 
 if [ $# -ne 3 ]; then
     echo -e "\033[33mError! Use: \"$0\" test_name group_directory task_directory\033[0m" >&2
-    exit 1
-fi
-
-if ! env | grep "VIRTUAL_ENV" &> /dev/null; then
-    echo -e "\033[33mError! Python environment must be activated!\033[0m" >&2
     exit 1
 fi
 
@@ -49,8 +44,14 @@ if [ -z "$(ls "$groupDir")" ]; then
     error "Error: \"$groupDir\" directory is empty!"
 fi
 
-if ! ls "$taskDir/"*.py &> /dev/null; then
+if [ "$(ls "$taskDir/"*.{py,sh} 2> /dev/null | wc -l)" -eq 0 ]; then
     error "Error: directory \"$taskDir\" doesn't contain any code files!"
+fi
+
+if ls "$taskDir/"*.py &> /dev/null; then
+    if ! env | grep "VIRTUAL_ENV" &> /dev/null; then
+        error "Error: python environment must be activated!"
+    fi
 fi
 
 testDir="$(realpath "$testDir")"
@@ -73,7 +74,8 @@ login_permission BOOLEAN NOT NULL CHECK(login_permission IN (0, 1)) DEFAULT 1, \
 group_id INTEGER REFERENCES groups(id) ON DELETE RESTRICT, password TEXT NOT NULL, \
 next_task_click_count INTEGER NOT NULL DEFAULT 0);
 CREATE TABLE tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, description TEXT NOT NULL UNIQUE, \
-answer TEXT NOT NULL, difficulty_level INTEGER NOT NULL CHECK(difficulty_level IN (0, 1, 2)));
+answer TEXT NOT NULL, difficulty_level INTEGER NOT NULL CHECK(difficulty_level IN (0, 1, 2)), \
+language TEXT NOT NULL CHECK(language IN ('py', 'sh')));
 CREATE TABLE students_tasks (student_id INTEGER REFERENCES students(id) ON DELETE RESTRICT, \
 task_id INTEGER REFERENCES tasks(id) ON DELETE RESTRICT, UNIQUE(task_id, student_id));
 CREATE TABLE results (id INTEGER PRIMARY KEY AUTOINCREMENT, \
@@ -94,9 +96,9 @@ fi
 # adding tasks to the DB
 taskLabels=(L M H)
 taskId=1
-for task in "$taskDir/"*.py; do
+for task in "$taskDir/"*.{py,sh}; do
     if [ ! -f "$task" ]; then
-        error "Error: \"$task\" isn't a file!"
+        continue
     fi
     description="$(grep -P '^\s*#\s*:d:' "$task" | sed 's/^[ \t]*#[ \t]*:d:[ \t]*//' | tr '\n' ' ' | tr "'" "\"" | sed 's/[ \t]$//')"
     if [ -z "$description" ]; then
@@ -112,14 +114,21 @@ for task in "$taskDir/"*.py; do
     fi
     info "\nAdding ${taskLabels[$diffLevel]}-level task with id $taskId: \"$description\" to database..."
     pushd "$testDir" &> /dev/null
-    answer="$(python "$task")" || error "Error in task: \"$task\""
+    if [ "${task##*.}" = 'py' ]; then
+        language='py'
+        answer="$(python "$task")" || error "Error in task: \"$task\""
+    else # bash
+        language='sh'
+        answer="$(bash "$task")" || error "Error in task: \"$task\""
+    fi
     popd &> /dev/null
     answer="$(echo "$answer" | tr -d '\n\t\r ')"
     if [ -z "$answer" ]; then
         error "Error: The answer to task \"$task\" is empty!"
     fi
     hashAnswer="$(echo -n "$answer" | sha256sum | tr -d ' \-\n')"
-    echo "INSERT INTO tasks (id, description, answer, difficulty_level) VALUES ($taskId, '$description', '$hashAnswer', $diffLevel)" | sqlite3 "$dbFile"
+    echo "INSERT INTO tasks (id, description, answer, difficulty_level, language) VALUES \
+        ($taskId, '$description', '$hashAnswer', $diffLevel, '$language')" | sqlite3 "$dbFile"
     printOk
     taskId=$(( $taskId + 1 ))
 done
@@ -205,34 +214,28 @@ bwrap \
 bash -c 'python3 -m venv /pyenv'
 printOk
 
-pyRequirements="$(pip freeze | tr '\n' ' ')"
-if [ -n "$pyRequirements" ]; then
-    info "\nInstalling dependencies into python environment inside sandbox...\n"
+if ls "$taskDir/"*.py &> /dev/null; then
     pyRequirements="$(pip freeze | tr '\n' ' ')"
-    bwrap \
-    --new-session \
-    --unshare-all \
-    --share-net \
-    --ro-bind /usr /usr \
-    --symlink /usr/bin /bin \
-    --symlink /usr/lib /lib \
-    --symlink /usr/lib64 /lib64 \
-    --ro-bind /etc /etc \
-    --dev /dev \
-    --bind "$testDir/lib/pyenv" /pyenv \
-    bash -c ". /pyenv/bin/activate; \
-    pip install $pyRequirements; \
-    deactivate"
-    printOk
+    if [ -n "$pyRequirements" ]; then
+        info "\nInstalling dependencies into python environment inside sandbox...\n"
+        pyRequirements="$(pip freeze | tr '\n' ' ')"
+        bwrap \
+        --new-session \
+        --unshare-all \
+        --share-net \
+        --ro-bind /usr /usr \
+        --symlink /usr/bin /bin \
+        --symlink /usr/lib /lib \
+        --symlink /usr/lib64 /lib64 \
+        --ro-bind /etc /etc \
+        --dev /dev \
+        --bind "$testDir/lib/pyenv" /pyenv \
+        bash -c ". /pyenv/bin/activate; \
+        pip install $pyRequirements; \
+        deactivate"
+        printOk
+    fi
 fi
-
-info "Creating a script to run student code inside the sandbox..."
-echo '#!/bin/bash
-source /pyenv/bin/activate
-python /code.py
-deactivate' > "$testDir/tools/run-code-inside-sandbox.sh"
-chmod 444 "$testDir/tools/run-code-inside-sandbox.sh"
-printOk
 
 info "Creating a resource limit configuration file..."
 echo 'timeout:10
@@ -254,6 +257,7 @@ info "Creating a script that executes the student's code..."
 echo '#!/bin/bash
 studentId="$1"
 hashCorrectAnswer="$2"
+language="$3"
 rm -rf "$(pwd)/work-tmp/stud-home/$studentId/"* 2> /dev/null
 rm -rf "$(pwd)/work-tmp/stud-home/$studentId/".* 2> /dev/null
 rm "$(pwd)/work-tmp/msg/$studentId.txt" 2> /dev/null
@@ -279,14 +283,15 @@ bwrap \
 --setenv HOME /home/student \
 --dev /dev \
 --ro-bind "$(pwd)/lib/pyenv" /pyenv \
---ro-bind "$(pwd)/work-tmp/code/$studentId.py" /code.py \
+--ro-bind "$(pwd)/work-tmp/code/${studentId}.txt" /code.txt \
 --ro-bind "$(pwd)/tools/run-code-inside-sandbox.sh" /run-code.sh \
 --bind "$(pwd)/work-tmp/stud-home/$studentId" /home/student \
 --ro-bind "$(pwd)/data" /home/student/data \
 --chdir /home/student \
-bash /run-code.sh &> "$(pwd)/work-tmp/out/$studentId.txt"
-if [ "$(cat "$(pwd)/work-tmp/out/$studentId.txt" | wc -c)" -eq "$(( 2048 * 1024 ))" ]; then
-    echo "The program output may have exceeded 2 MiB!" >> "$(pwd)/work-tmp/msg/$studentId.txt"
+bash /run-code.sh "$language" &> "$(pwd)/work-tmp/out/${studentId}.txt"
+
+if [ "$(cat "$(pwd)/work-tmp/out/${studentId}.txt" | wc -c)" -eq "$(( 2048 * 1024 ))" ]; then
+    echo "The program output may have exceeded 2 MiB!" >> "$(pwd)/work-tmp/msg/${studentId}.txt"
 fi
 curDate="$(date +%Y%m%d%H%M%S)"
 pushd "$(pwd)/work-tmp/stud-home/$studentId" &> /dev/null
@@ -301,7 +306,7 @@ for fileName in *.{png,jpeg}; do
     fi
 done
 popd &> /dev/null
-hashAnswer="$(cat "$(pwd)/work-tmp/out/$studentId.txt" | tail -n +2 | tr -d "\n\t\r " | sha256sum | tr -d " \-\n")"
+hashAnswer="$(cat "$(pwd)/work-tmp/out/${studentId}.txt" | tail -n +2 | tr -d "\n\t\r " | sha256sum | tr -d " \-\n")"
 if [ "$hashAnswer" == "$hashCorrectAnswer" ]; then
     exit 0
 else
@@ -309,5 +314,19 @@ else
 fi' > "$testDir/tools/run-stud-code.sh"
 chmod 550 "$testDir/tools/run-stud-code.sh"
 printOk
+
+info "Creating a script to run student code inside the sandbox..."
+echo '#!/bin/bash
+language="$1"
+source /pyenv/bin/activate
+if [ "$language" = "py" ]; then
+    python /code.txt
+elif [ "$language" = "sh" ]; then
+    bash /code.txt
+fi
+deactivate' > "$testDir/tools/run-code-inside-sandbox.sh"
+chmod 444 "$testDir/tools/run-code-inside-sandbox.sh"
+printOk
+
 info "Done\n"
 exit 0
