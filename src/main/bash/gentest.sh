@@ -26,7 +26,7 @@ mkdir -p "$testDir"
 printOk
 
 error() {
-    echo -e "\033[33m$1\033[0m" >&2 # $1 - message
+    echo -e "\033[33m$1\033[0m" | tr -s ' ' >&2 # $1 - message
     find "$testDir/data" -type d -exec chmod 755 {} \;
     rm -rf "$testDir"
     exit 1
