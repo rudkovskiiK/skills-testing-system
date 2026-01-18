@@ -75,7 +75,7 @@ group_id INTEGER REFERENCES groups(id) ON DELETE RESTRICT, password TEXT NOT NUL
 next_task_click_count INTEGER NOT NULL DEFAULT 0);
 CREATE TABLE tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, description TEXT NOT NULL UNIQUE, \
 answer TEXT NOT NULL, difficulty_level INTEGER NOT NULL CHECK(difficulty_level IN (0, 1, 2)), \
-language TEXT NOT NULL CHECK(language IN ('py', 'sh')));
+class TEXT NOT NULL, language TEXT NOT NULL CHECK(language IN ('py', 'sh')));
 CREATE TABLE students_tasks (student_id INTEGER REFERENCES students(id) ON DELETE RESTRICT, \
 task_id INTEGER REFERENCES tasks(id) ON DELETE RESTRICT, UNIQUE(task_id, student_id));
 CREATE TABLE results (id INTEGER PRIMARY KEY AUTOINCREMENT, \
@@ -112,7 +112,11 @@ for task in "$taskDir/"*.{py,sh}; do
     if [ -z "$diffLevel" ]; then
         error "Error: there is no difficulty level label in the task file \"$task\".\nUse:\n# :level: L|M|H"
     fi
-    info "\nAdding ${taskLabels[$diffLevel]}-level task with id $taskId: \"$description\" to database..."
+    class="$(grep -P '^\s*#\s*:class:\s*\w+\s*$' "$task" | head -1 | sed 's/^[ \t]*#[ \t]*:class:[ \t]*\|[ \t]*$//g')"
+    if [ -z "$class" ]; then
+        error "Error: there is no class label in the task file \"$task\".\nUse:\n# :class: [A-Za-z0-9_]*"
+    fi
+    info "\nAdding ${taskLabels[$diffLevel]}-level (\"$class\"-class) task with id $taskId: \"$description\" to database..."
     pushd "$testDir" &> /dev/null
     if [ "${task##*.}" = 'py' ]; then
         language='py'
@@ -127,32 +131,32 @@ for task in "$taskDir/"*.{py,sh}; do
         error "Error: The answer to task \"$task\" is empty!"
     fi
     hashAnswer="$(echo -n "$answer" | sha256sum | tr -d ' \-\n')"
-    echo "INSERT INTO tasks (id, description, answer, difficulty_level, language) VALUES \
-        ($taskId, '$description', '$hashAnswer', $diffLevel, '$language')" | sqlite3 "$dbFile"
+    echo "INSERT INTO tasks (id, description, answer, difficulty_level, class, language) VALUES \
+        ($taskId, '$description', '$hashAnswer', $diffLevel, '$class', '$language')" | sqlite3 "$dbFile"
     printOk
     taskId=$(( $taskId + 1 ))
 done
 
 distributeTasks() {
-    # $1 - student id
-    # $2 - task distribution line (example: 3H2M1L)
-    taskDistribArr=($(echo "$2" | tr 'LMH' ' '))
-    for i in {0..2}; do
-        if [ ${taskDistribArr[$i]} -gt 0 ]; then
-            tasksIds=($(echo "SELECT (id) FROM tasks WHERE difficulty_level = $i ORDER BY RANDOM() LIMIT ${taskDistribArr[$i]}" | sqlite3 "$dbFile"))
-            if [ ${#tasksIds[*]} -lt ${taskDistribArr[$i]} ]; then
-                query="SELECT s.full_name, g.name FROM students AS s JOIN groups AS g ON s.group_id = g.id WHERE s.id = $1"
-                studentAndGroup="$(echo "$query" | sqlite3 "$dbFile")"
-                s="$(echo "$studentAndGroup" | cut -d '|' -f 1)"
-                g="$(echo "$studentAndGroup" | cut -d '|' -f 2)"
-                error "Error: for student \"$s\" from group \"$g\" there were not enough ${taskLabels[$i]} tasks, \
-                    ${taskDistribArr[$i]} tasks are required, but there are only ${#tasksIds[*]}!"
+    local studentId="$1"
+    local taskDistribution=($(echo "$2" | tr 'LMH' ' ')) # $2 - example: 3H2M1L
+    for i in ${!taskDistribution[*]}; do
+        local n="${taskDistribution[$i]}"
+        if [ "$n" -gt 0 ]; then
+            local nUniqueClasses=($(echo "SELECT DISTINCT class FROM tasks WHERE difficulty_level = $i ORDER BY RANDOM() LIMIT $n" | sqlite3 "$dbFile"))
+            if [ "${#nUniqueClasses[*]}" -ne "$n" ]; then
+                local name="$(echo "SELECT full_name FROM students WHERE id = $studentId" | sqlite3 "$dbFile")"
+                local group="$(echo "SELECT name FROM groups WHERE id = (SELECT group_id FROM students WHERE id = $studentId)" | sqlite3 "$dbFile")"
+                error "Error: there are not enough different level \"${taskLabels[$i]}\" tasks for student \"$name\", group \"$group\"!"
             fi
-
-            info "\t\tAssigning the following ${taskLabels[$i]}-level tasks with ids: (${tasksIds[*]})..."
-            for taskId in ${tasksIds[*]}
-            do
-                echo "INSERT INTO students_tasks (student_id, task_id) VALUES ($1, $taskId)" | sqlite3 "$dbFile"
+            local taskIds=()
+            for class in ${nUniqueClasses[*]}; do
+                local taskId="$(echo "SELECT id FROM tasks WHERE class = '$class' AND difficulty_level = $i ORDER BY RANDOM() LIMIT 1" | sqlite3 "$dbFile")"
+                taskIds+=("$taskId")
+            done
+            info "\t\tAssigning the following ${taskLabels[$i]}-level tasks with ids: (${taskIds[*]})..."
+            for taskId in ${taskIds[*]}; do
+                echo "INSERT INTO students_tasks (student_id, task_id) VALUES ($studentId, $taskId)" | sqlite3 "$dbFile"
             done
             printOk
         fi
