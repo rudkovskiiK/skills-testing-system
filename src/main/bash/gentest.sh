@@ -176,7 +176,7 @@ for group in "$groupDir/"*; do
         error "Error: the following group name occurs twice: \"$groupName\""
     fi
     groupTaskDistribution="${group##*_}"
-    groupTaskDistribution="${groupTaskDistribution%.txt}"
+    groupTaskDistribution="${groupTaskDistribution%.csv}"
     info "\nAdding student group \"$groupName\" to database..."
     echo "INSERT INTO groups (id, name) VALUES ($groupId, '$groupName')" | sqlite3 "$dbFile"
     printOk
