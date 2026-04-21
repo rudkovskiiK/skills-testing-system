@@ -10,7 +10,7 @@
     </parent>
     <groupId>org.air-river</groupId>
     <artifactId>skills-testing-system</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>1.0.0</version>
     <name>skills-testing-system</name>
     <description>This application is designed to test programming skills.</description>
     <url/>
