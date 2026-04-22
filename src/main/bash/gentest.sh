@@ -25,7 +25,7 @@ printOk() {
 }
 
 if [ $# -ne 3 ]; then
-    echo -e "\033[33mError! Use: \"$0\" test_name group_directory task_directory\033[0m" >&2
+    echo -e "\033[33mError! Use: gentest test_name group_directory task_directory\033[0m" >&2
     exit 1
 fi
 

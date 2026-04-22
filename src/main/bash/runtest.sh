@@ -21,7 +21,7 @@ error() {
 }
 
 if [ $# -ne 1 ]; then
-    error "Error: use \"$0\" test_dir_name"
+    error "Error! Use: runtest test_dir_name"
 fi
 
 if [ -z "$STS_SERVER_PATH" ]; then
