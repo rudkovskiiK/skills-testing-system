@@ -75,8 +75,8 @@ STS_NICE=$(getPropertyFromFile "$resourceLimitsFile" "nice" "\d+") || exit $?
 if [ $STS_NICE -gt 19 ]; then
     error "Error: parameter \"nice\" cannot exceed 19!"
 fi
-STS_MEMORY_HIGH=$(getPropertyFromFile "$resourceLimitsFile" "MemoryHigh" "\d+[KMGT%]?") || exit $?
-STS_MEMORY_MAX=$(getPropertyFromFile "$resourceLimitsFile" "MemoryMax" "\d+[KMGT%]?") || exit $?
+STS_MEMORY_HIGH=$(getPropertyFromFile "$resourceLimitsFile" "MemoryHigh" "\d+[KMGT%]?|infinity") || exit $?
+STS_MEMORY_MAX=$(getPropertyFromFile "$resourceLimitsFile" "MemoryMax" "\d+[KMGT%]?|infinity") || exit $?
 STS_MEMORY_SWAP_MAX=$(getPropertyFromFile "$resourceLimitsFile" "MemorySwapMax" "\d+[KMGT]?|infinity") || exit $?
 STS_RUN_TASKS_MAX=$(getPropertyFromFile "$resourceLimitsFile" "RunTasksMax" "\d+") || exit $?
 STS_STUD_PROC_MAX=$(getPropertyFromFile "$resourceLimitsFile" "StudProcMax" "\d+") || exit $?
