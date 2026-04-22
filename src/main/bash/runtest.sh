@@ -20,12 +20,15 @@ error() {
    exit 1
 }
 
-if [ $# -ne 2 ]; then
-    error "Error: use \"$0\" server_path test_dir_name"
+if [ $# -ne 1 ]; then
+    error "Error: use \"$0\" test_dir_name"
 fi
 
-serverPath="$(realpath "$1")"
-testDir="${2%/}"
+if [ -z "$STS_SERVER_PATH" ]; then
+    error "Error: global variable \"STS_SERVER_PATH\" is not defined!"
+fi
+
+testDir="${1%/}"
 dbFile="$testDir/test.db"
 resourceLimitsFile="$testDir/settings/resource_limits.txt"
 serverSettingsFile="$testDir/settings/server.txt"
@@ -231,7 +234,7 @@ while read line; do
         fi
     elif checkCmd "$line" '^start$'; then
         pushd "$testDir" &> /dev/null
-        java -jar "$serverPath" --server.port=$serverPort &>> "log.txt" &
+        java -jar "$STS_SERVER_PATH" --server.port=$serverPort &>> "log.txt" &
         STS_SERVER_PID=$!
         popd &> /dev/null
         sleep 2
