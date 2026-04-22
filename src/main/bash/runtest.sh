@@ -273,7 +273,7 @@ while read line; do
         --bind "$(realpath $testDir)/lib/pyenv" /pyenv \
         bash -c ". /pyenv/bin/activate;pip install $libName; deactivate" | indent
     elif checkCmd "$line" '^ip$'; then
-        ip address | indent
+        ip -br address | indent
     elif checkCmd "$line" '^q$'; then
         quit
     elif checkCmd "$line" '^h$'; then
