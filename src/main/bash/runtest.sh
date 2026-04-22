@@ -291,6 +291,8 @@ while read line; do
         echo 'stop - web server stop' | indent
         echo 'log - print server log' | indent
         echo 'inst <python_package_name> - install python package into virtual environment inside sandbox' | indent
+        echo 'ip - show IP addresses of host network interfaces' | indent
+        echo 'q - exit' | indent
         echo 'h - print this help' | indent
     else
         if [ -n "$line" ]; then
