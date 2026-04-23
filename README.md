@@ -18,7 +18,7 @@ Currently supported:
 
 For Debian/Ubuntu run:
 ```bash
-git clone
+git clone https://github.com/rudkovskiiK/skills-testing-system.git
 sudo apt update && sudo apt upgrade
 sudo apt install openjdk-17-jdk # 17 or later
 sudo apt install sqlite3 sed python3 bubblewrap python3-pip iproute2 npm maven rlwrap
