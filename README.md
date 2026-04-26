@@ -8,6 +8,13 @@ network. The system consists of three main components:
  2. a bash script for interactive management of the testing process,
  3. a web application for conducting the testing.
 
+## Screenshots
+
+![Login page](images/login.png "Login page")
+![Test page with an unsolved task](images/test_page_unsolved.png "Test page with an unsolved task")
+![Test page with the solved task](images/test_page_solved.png "Test page with the solved task")
+![Output of students' results](images/student_results.png "Output of students' results")
+
 ## Supported programming languages
 
 Currently supported:
