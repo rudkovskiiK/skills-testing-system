@@ -48,13 +48,11 @@ error() {
     exit 1
 }
 
-if [ ! -d "$groupDir" ]; then
-    error "Error: directory \"$groupDir\" doesn't exist!"
-fi
-
-if [ ! -d "$taskDir" ]; then
-    error "Error: directory \"$taskDir\" doesn't exist!"
-fi
+for dir in "$groupDir" "$taskDir"; do
+    if [ ! -d "$dir" ]; then
+        error "Error: directory \"$dir\" doesn't exist!"
+    fi
+done
 
 if [ -z "$(ls "$groupDir")" ]; then
     error "Error: \"$groupDir\" directory is empty!"
