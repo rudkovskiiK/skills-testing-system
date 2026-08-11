@@ -131,7 +131,10 @@ for task in "$taskDir/"*.{py,sh}; do
         error "Error: there is no class label in the task file \"$task\".\nUse:\n# :class: [A-Za-z0-9_]*"
     fi
     info "\nAdding ${taskLabels[$diffLevel]}-level (\"$class\"-class) task with id $taskId: \"$description\" to database..."
-    pushd "$testDir" &> /dev/null
+    run_dir="$testDir/run"
+    mkdir "$run_dir"
+    pushd "$run_dir" &> /dev/null
+    ln -s ../data data
     if [ "${task##*.}" = 'py' ]; then
         language='py'
         answer="$(python "$task")" || error "Error in task: \"$task\""
@@ -140,6 +143,7 @@ for task in "$taskDir/"*.{py,sh}; do
         answer="$(bash "$task")" || error "Error in task: \"$task\""
     fi
     popd &> /dev/null
+    rm -rf "$run_dir"
     answer="$(echo "$answer" | tr -d '\n\t\r ')"
     if [ -z "$answer" ]; then
         error "Error: The answer to task \"$task\" is empty!"
