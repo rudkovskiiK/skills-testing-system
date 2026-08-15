@@ -32,6 +32,7 @@ public class Task {
     private String answer;
     private Integer difficultyLevel;
     private String language;
+    private String runScript;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -74,6 +75,14 @@ public class Task {
         this.language = language;
     }
 
+    @Column(name = "run_script", nullable = false)
+    public String getRunScript() {
+        return runScript;
+    }
+    public void setRunScript(String runScript) {
+        this.runScript = runScript;
+    }
+
     @Override
     public boolean equals(Object obj) {
         if(this == obj) return true;
@@ -84,6 +93,7 @@ public class Task {
         if(!(answer == null ? t.answer == null : answer.equals(t.answer))) return false;
         if(!(difficultyLevel == null ? t.difficultyLevel == null : difficultyLevel.equals(t.difficultyLevel))) return false;
         if(!(language == null ? t.language == null : language.equals(t.language))) return false;
+        if(!(runScript == null ? t.runScript == null : runScript.equals(t.runScript))) return false;
         return true;
     }
 
@@ -94,6 +104,7 @@ public class Task {
         hash += answer == null ? 0 : answer.hashCode();
         hash += difficultyLevel == null ? 0 : difficultyLevel.hashCode();
         hash += language == null ? 0 : language.hashCode();
+        hash += runScript == null ? 0 : runScript.hashCode();
         return hash;
     }
 }

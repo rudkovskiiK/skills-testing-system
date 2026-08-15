@@ -20,6 +20,7 @@ shopt -s extglob
 info() {
    echo -en "\033[32m$1\033[0m" # $1 - message
 }
+
 printOk() {
    echo -e "\033[32mOK\033[0m"
 }
@@ -58,7 +59,7 @@ if [ -z "$(ls "$groupDir")" ]; then
     error "Error: \"$groupDir\" directory is empty!"
 fi
 
-if [ "$(ls "$taskDir/"*.{py,sh} 2> /dev/null | wc -l)" -eq 0 ]; then
+if ! ls "$taskDir/"*.* &> /dev/null; then
     error "Error: directory \"$taskDir\" doesn't contain any code files!"
 fi
 
@@ -72,6 +73,7 @@ testDir="$(realpath "$testDir")"
 groupDir="$(realpath "$groupDir")"
 taskDir="$(realpath "$taskDir")"
 dbFile="$testDir/test.db"
+taskLabels=(L M H)
 
 mkdir "$testDir/tools"
 mkdir "$testDir/lib"
@@ -89,7 +91,7 @@ group_id INTEGER REFERENCES groups(id) ON DELETE RESTRICT, password TEXT NOT NUL
 next_task_click_count INTEGER NOT NULL DEFAULT 0);
 CREATE TABLE tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, description TEXT NOT NULL UNIQUE, \
 answer TEXT NOT NULL, difficulty_level INTEGER NOT NULL CHECK(difficulty_level IN (0, 1, 2)), \
-class TEXT NOT NULL, language TEXT NOT NULL CHECK(language IN ('py', 'sh')));
+class TEXT NOT NULL, language TEXT NOT NULL, run_script TEXT NOT NULL);
 CREATE TABLE students_tasks (student_id INTEGER REFERENCES students(id) ON DELETE RESTRICT, \
 task_id INTEGER REFERENCES tasks(id) ON DELETE RESTRICT, UNIQUE(task_id, student_id));
 CREATE TABLE results (id INTEGER PRIMARY KEY AUTOINCREMENT, \
@@ -107,53 +109,70 @@ if [ -d "$taskDir/data" ]; then
     fi
 fi
 
-# adding tasks to the DB
-taskLabels=(L M H)
-taskId=1
-for task in "$taskDir/"*.{py,sh}; do
-    if [ ! -f "$task" ]; then
-        continue
-    fi
-    description="$(grep -P '^\s*#\s*:d:' "$task" | sed 's/^[ \t]*#[ \t]*:d:[ \t]*//' | tr '\n' ' ' | tr "'" "\"" | sed 's/[ \t]$//')"
+getSpecialCommentBody() {
+    local task="$1"
+    local keyWord="$2"
+    local s='[[:space:]]'
+    sed -nE "s/$s*$// ; s%^$s*(#|//)$s*:$keyWord:$s*%%p" < "$task"
+}
+
+addTaskToDb() {
+    local task="$1"
+    local taskId="$2"
+    local language="${task##*.}"
+    local description="$(getSpecialCommentBody "$task" 'd' | tr '\n' ' ' | tr "'" '"')"
     if [ -z "$description" ]; then
-        error "Error: there is no description in the task file \"$task\"!.\nExample description:\n# :d: your_description\n# :d: your_description"
+        error "Error: there is no description in the task file \"$task\"!
+               Example description:
+               #|// :d: your_description
+               #|// :d: your_description"
     fi
-    query="SELECT (id) FROM tasks WHERE description = '$description'"
+    local query="SELECT (id) FROM tasks WHERE description = '$description'"
     if [ ! -z "$(echo "$query" | sqlite3 "$dbFile")" ]; then
-        error "Error: the following task description occurs twice:\n\"$description\""
+        error "Error: the following task description occurs twice:\n\"$description\"!"
     fi
-    diffLevel="$(grep -P '^\s*#\s*:level:\s*[LMH]\s*$' "$task" | tr -c 'LMH' ' ' | tr -d ' ' | tr 'L' '0' | tr 'M' '1' | tr 'H' '2')"
-    if [ -z "$diffLevel" ]; then
-        error "Error: there is no difficulty level label in the task file \"$task\".\nUse:\n# :level: L|M|H"
+    local diffLevel="$(getSpecialCommentBody "$task" 'level' | head -1 | tr -d '\n' | tr 'L' '0' | tr 'M' '1' | tr 'H' '2')"
+    if ! echo "$diffLevel" | grep "^[012]$" &> /dev/null; then
+        error "Error: missing or invalid difficulty level label in the task file \"$task\"!
+               Use: #|// :level: L|M|H"
     fi
-    class="$(grep -P '^\s*#\s*:class:\s*\w+\s*$' "$task" | head -1 | sed 's/^[ \t]*#[ \t]*:class:[ \t]*\|[ \t]*$//g')"
-    if [ -z "$class" ]; then
-        error "Error: there is no class label in the task file \"$task\".\nUse:\n# :class: [A-Za-z0-9_]*"
+    local class="$(getSpecialCommentBody "$task" 'class' | head -1 | tr -d '\n')"
+    if ! echo "$class" | grep -P "^\w+$" &> /dev/null; then
+        error "Error: missing or invalid class label in the task file \"$task\"!
+               Use: #|// :class: [A-Za-z0-9_]+"
     fi
-    info "\nAdding ${taskLabels[$diffLevel]}-level (\"$class\"-class) task with id $taskId: \"$description\" to database..."
-    run_dir="$testDir/run"
+    local run_com_tmpl="$(getSpecialCommentBody "$task" 'run' | head -1)"
+    if ! echo "$run_com_tmpl" | grep -P "^\w+\s+{}.*$" &> /dev/null; then
+        error "Error: missing or invalid run instruction in the task file \"$task\"!
+               Correct examples:
+               #|// :run: gcc {} -o exe && ./exe
+               #|// :run: python {}"
+    fi
+    local run_com="$(echo "$run_com_tmpl" | sed "s|{}|$task|")"
+    local run_dir="$testDir/run"
     mkdir "$run_dir"
-    pushd "$run_dir" &> /dev/null
-    ln -s ../data data
-    if [ "${task##*.}" = 'py' ]; then
-        language='py'
-        answer="$(python "$task")" || error "Error in task: \"$task\""
-    else # bash
-        language='sh'
-        answer="$(bash "$task")" || error "Error in task: \"$task\""
+    if [ -d "$testDir/data" ]; then
+        ln -s "$testDir/data" "$run_dir/data"
     fi
+    pushd "$run_dir" &> /dev/null
+    local answer
+    answer="$(bash -c "$run_com")" || error "Error in task: \"$task\""
     popd &> /dev/null
     rm -rf "$run_dir"
-    answer="$(echo "$answer" | tr -d '\n\t\r ')"
+    local answer="$(echo "$answer" | tr -d '\n\t\r ')"
     if [ -z "$answer" ]; then
         error "Error: The answer to task \"$task\" is empty!"
     fi
-    hashAnswer="$(echo -n "$answer" | sha256sum | tr -d ' \-\n')"
-    echo "INSERT INTO tasks (id, description, answer, difficulty_level, class, language) VALUES \
-        ($taskId, '$description', '$hashAnswer', $diffLevel, '$class', '$language')" | sqlite3 "$dbFile"
+    local hashAnswer="$(echo -n "$answer" | sha256sum | tr -d ' \-\n')"
+    local run_script="$(echo "$run_com_tmpl" | sed "s|{}|/code.$language|")"
+    if [ "$language" = 'py' ]; then
+        run_script="source /pyenv/bin/activate ; $run_script"
+    fi
+    info "\nAdding ${taskLabels[$diffLevel]}-level (\"$class\"-class) task with id $taskId: \"$description\" to database..."
+    echo "INSERT INTO tasks (id, description, answer, difficulty_level, class, language, run_script) VALUES \
+        ($taskId, '$description', '$hashAnswer', $diffLevel, '$class', '$language', '$run_script')" | sqlite3 "$dbFile"
     printOk
-    taskId=$(( $taskId + 1 ))
-done
+}
 
 distributeTasks() {
     local studentId="$1"
@@ -180,6 +199,16 @@ distributeTasks() {
         fi
     done
 }
+
+# adding tasks to the DB
+taskId=1
+for task in "$taskDir/"*.*; do
+    if [ ! -f "$task" ]; then
+        continue
+    fi
+    addTaskToDb "$task" "$taskId"
+    taskId=$(( $taskId + 1 ))
+done
 
 # Adding students and distributing tasks
 studentId=1
@@ -280,6 +309,7 @@ echo '#!/bin/bash
 studentId="$1"
 hashCorrectAnswer="$2"
 language="$3"
+run_script="$4"
 rm -rf "$(pwd)/work-tmp/stud-home/$studentId/"* 2> /dev/null
 rm -rf "$(pwd)/work-tmp/stud-home/$studentId/".* 2> /dev/null
 rm "$(pwd)/work-tmp/msg/$studentId.txt" 2> /dev/null
@@ -305,12 +335,11 @@ bwrap \
 --setenv HOME /home/student \
 --dev /dev \
 --ro-bind "$(pwd)/lib/pyenv" /pyenv \
---ro-bind "$(pwd)/work-tmp/code/${studentId}.txt" /code.txt \
---ro-bind "$(pwd)/tools/run-code-inside-sandbox.sh" /run-code.sh \
+--ro-bind "$(pwd)/work-tmp/code/${studentId}.txt" /code.$language \
 --bind "$(pwd)/work-tmp/stud-home/$studentId" /home/student \
 --ro-bind "$(pwd)/data" /home/student/data \
 --chdir /home/student \
-bash /run-code.sh "$language" &> "$(pwd)/work-tmp/out/${studentId}.txt"
+bash -c "$run_script" &> "$(pwd)/work-tmp/out/${studentId}.txt"
 
 if [ "$(cat "$(pwd)/work-tmp/out/${studentId}.txt" | wc -c)" -eq "$(( 2048 * 1024 ))" ]; then
     echo "The program output may have exceeded 2 MiB!" >> "$(pwd)/work-tmp/msg/${studentId}.txt"
@@ -336,19 +365,5 @@ else
 fi' > "$testDir/tools/run-stud-code.sh"
 chmod 550 "$testDir/tools/run-stud-code.sh"
 printOk
-
-info "Creating a script to run student code inside the sandbox..."
-echo '#!/bin/bash
-language="$1"
-source /pyenv/bin/activate
-if [ "$language" = "py" ]; then
-    python /code.txt
-elif [ "$language" = "sh" ]; then
-    bash /code.txt
-fi
-deactivate' > "$testDir/tools/run-code-inside-sandbox.sh"
-chmod 444 "$testDir/tools/run-code-inside-sandbox.sh"
-printOk
-
 info "Done\n"
 exit 0
