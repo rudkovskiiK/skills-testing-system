@@ -36,7 +36,7 @@ logFile="$testDir/log.txt"
 if [ ! -d "$testDir" ]; then
     error "Error: directory \"$testDir\" doesn't exist!"
 fi
-if ! ls "$testDir/"{conf.txt,tools,lib,data,work-tmp,test.db,log.txt} &> /dev/null; then
+if ! ls "$testDir/"{conf.txt,lib,data,run-stud-code.sh,work-tmp,test.db,log.txt} &> /dev/null; then
     error "Error: directory \"$testDir\" isn't correct!"
 fi
 logNumLine="$(cat "$logFile" | wc -l)"

@@ -75,7 +75,6 @@ taskDir="$(realpath "$taskDir")"
 dbFile="$testDir/test.db"
 taskLabels=(L M H)
 
-mkdir "$testDir/tools"
 mkdir "$testDir/lib"
 mkdir "$testDir/data"
 mkdir "$testDir/work-tmp"
@@ -309,7 +308,8 @@ EOF
 printOk
 
 info "Creating a script that executes the student's code..."
-echo '#!/bin/bash
+cat > "$testDir/run-stud-code.sh" << 'EOF'
+#!/bin/bash
 studentId="$1"
 hashCorrectAnswer="$2"
 language="$3"
@@ -366,8 +366,9 @@ if [ "$hashAnswer" == "$hashCorrectAnswer" ]; then
     exit 0
 else
     exit 1
-fi' > "$testDir/tools/run-stud-code.sh"
-chmod 550 "$testDir/tools/run-stud-code.sh"
+fi
+EOF
+chmod 550 "$testDir/run-stud-code.sh"
 printOk
 info "Done\n"
 exit 0

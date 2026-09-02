@@ -85,7 +85,7 @@ public class TaskCodeExecutionService {
             throw new ExecTaskCodeException("Error saving code file!");
         }
         try {
-            Process process = new ProcessBuilder("./tools/run-stud-code.sh", student.getId().toString(),
+            Process process = new ProcessBuilder("./run-stud-code.sh", student.getId().toString(),
                                                     task.getAnswer(), task.getLanguage(), task.getRunScript()).start();
             process.waitFor();
             String out = "";
