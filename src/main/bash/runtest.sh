@@ -30,21 +30,14 @@ fi
 
 testDir="${1%/}"
 dbFile="$testDir/test.db"
-resourceLimitsFile="$testDir/settings/resource_limits.txt"
-serverSettingsFile="$testDir/settings/server.txt"
+confFile="$testDir/conf.txt"
 logFile="$testDir/log.txt"
 
 if [ ! -d "$testDir" ]; then
     error "Error: directory \"$testDir\" doesn't exist!"
 fi
-if ! ls "$testDir/"{tools,lib,settings,data,work-tmp,test.db,log.txt} &> /dev/null; then
+if ! ls "$testDir/"{conf.txt,tools,lib,data,work-tmp,test.db,log.txt} &> /dev/null; then
     error "Error: directory \"$testDir\" isn't correct!"
-fi
-if [ ! -f "$resourceLimitsFile" ]; then
-    error "Error: file \"$resourceLimitsFile\" doesn't exist!"
-fi
-if [ ! -f "$serverSettingsFile" ]; then
-    error "Error: file \"$serverSettingsFile\" doesn't exist!"
 fi
 logNumLine="$(cat "$logFile" | wc -l)"
 export STS_SERVER_PID=-1
@@ -70,18 +63,18 @@ getPropertyFromFile() {
     echo "$value"
     return 0
 }
-STS_TIMEOUT=$(getPropertyFromFile "$resourceLimitsFile" "timeout" "\d+") || exit $?
-STS_NICE=$(getPropertyFromFile "$resourceLimitsFile" "nice" "\d+") || exit $?
+STS_TIMEOUT=$(getPropertyFromFile "$confFile" "timeout" "\d+") || exit $?
+STS_NICE=$(getPropertyFromFile "$confFile" "nice" "\d+") || exit $?
 if [ $STS_NICE -gt 19 ]; then
     error "Error: parameter \"nice\" cannot exceed 19!"
 fi
-STS_MEMORY_HIGH=$(getPropertyFromFile "$resourceLimitsFile" "MemoryHigh" "\d+[KMGT%]?|infinity") || exit $?
-STS_MEMORY_MAX=$(getPropertyFromFile "$resourceLimitsFile" "MemoryMax" "\d+[KMGT%]?|infinity") || exit $?
-STS_MEMORY_SWAP_MAX=$(getPropertyFromFile "$resourceLimitsFile" "MemorySwapMax" "\d+[KMGT]?|infinity") || exit $?
-STS_RUN_TASKS_MAX=$(getPropertyFromFile "$resourceLimitsFile" "RunTasksMax" "\d+") || exit $?
-STS_STUD_PROC_MAX=$(getPropertyFromFile "$resourceLimitsFile" "StudProcMax" "\d+") || exit $?
+STS_MEMORY_HIGH=$(getPropertyFromFile "$confFile" "MemoryHigh" "\d+[KMGT%]?|infinity") || exit $?
+STS_MEMORY_MAX=$(getPropertyFromFile "$confFile" "MemoryMax" "\d+[KMGT%]?|infinity") || exit $?
+STS_MEMORY_SWAP_MAX=$(getPropertyFromFile "$confFile" "MemorySwapMax" "\d+[KMGT]?|infinity") || exit $?
+STS_RUN_TASKS_MAX=$(getPropertyFromFile "$confFile" "RunTasksMax" "\d+") || exit $?
+STS_STUD_PROC_MAX=$(getPropertyFromFile "$confFile" "StudProcMax" "\d+") || exit $?
 export STS_TIMEOUT STS_NICE STS_MEMORY_HIGH STS_MEMORY_MAX STS_MEMORY_SWAP_MAX STS_RUN_TASKS_MAX STS_STUD_PROC_MAX
-serverPort=$(getPropertyFromFile "$serverSettingsFile" "port" "\d+") || exit $?
+serverPort=$(getPropertyFromFile "$confFile" "serverPort" "\d+") || exit $?
 
 rm -rf "$testDir/work-tmp/"* 2> /dev/null
 mkdir "$testDir/work-tmp/code"

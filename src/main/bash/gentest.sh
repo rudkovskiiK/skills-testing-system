@@ -77,7 +77,6 @@ taskLabels=(L M H)
 
 mkdir "$testDir/tools"
 mkdir "$testDir/lib"
-mkdir "$testDir/settings"
 mkdir "$testDir/data"
 mkdir "$testDir/work-tmp"
 touch "$testDir/log.txt"
@@ -293,20 +292,20 @@ if ls "$taskDir/"*.py &> /dev/null; then
     fi
 fi
 
-info "Creating a resource limit configuration file..."
-echo 'timeout:10
+info "Creating a configuration file..."
+cat > "$testDir/conf.txt" << 'EOF'
+# student code execution settings
+timeout:10
 nice:5
 MemoryHigh:800M
 MemoryMax:1000M
 MemorySwapMax:0
 RunTasksMax:5
-StudProcMax:100' > "$testDir/settings/resource_limits.txt"
-chmod 644 "$testDir/settings/resource_limits.txt"
-printOk
+StudProcMax:100
 
-info "Creating a server configuration file..."
-echo 'port:8080' > "$testDir/settings/server.txt"
-chmod 644 "$testDir/settings/server.txt"
+# server settings
+serverPort:8080
+EOF
 printOk
 
 info "Creating a script that executes the student's code..."
