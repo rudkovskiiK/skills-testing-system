@@ -180,15 +180,20 @@ distributeTasks() {
     for i in ${!taskDistribution[*]}; do
         local n="${taskDistribution[$i]}"
         if [ "$n" -gt 0 ]; then
-            local nUniqueClasses=($(echo "SELECT DISTINCT class FROM tasks WHERE difficulty_level = $i ORDER BY RANDOM() LIMIT $n" | sqlite3 "$dbFile"))
+            local query="SELECT DISTINCT class FROM tasks WHERE difficulty_level = $i ORDER BY RANDOM() LIMIT $n"
+            local nUniqueClasses=($(echo "$query" | sqlite3 "$dbFile"))
             if [ "${#nUniqueClasses[*]}" -ne "$n" ]; then
-                local name="$(echo "SELECT full_name FROM students WHERE id = $studentId" | sqlite3 "$dbFile")"
-                local group="$(echo "SELECT name FROM groups WHERE id = (SELECT group_id FROM students WHERE id = $studentId)" | sqlite3 "$dbFile")"
-                error "Error: there are not enough different level \"${taskLabels[$i]}\" tasks for student \"$name\", group \"$group\"!"
+                query="SELECT full_name FROM students WHERE id = $studentId"
+                local name="$(echo "$query" | sqlite3 "$dbFile")"
+                query="SELECT name FROM groups WHERE id = (SELECT group_id FROM students WHERE id = $studentId)"
+                local group="$(echo "$query" | sqlite3 "$dbFile")"
+                error "Error: there are not enough tasks of different classes of ${taskLabels[$i]}-level tasks \
+                       for student \"$name\", group \"$group\"!"
             fi
             local taskIds=()
             for class in ${nUniqueClasses[*]}; do
-                local taskId="$(echo "SELECT id FROM tasks WHERE class = '$class' AND difficulty_level = $i ORDER BY RANDOM() LIMIT 1" | sqlite3 "$dbFile")"
+                query="SELECT id FROM tasks WHERE class = '$class' AND difficulty_level = $i ORDER BY RANDOM() LIMIT 1"
+                local taskId="$(echo "$query" | sqlite3 "$dbFile")"
                 taskIds+=("$taskId")
             done
             info "\t\tAssigning the following ${taskLabels[$i]}-level tasks with ids: (${taskIds[*]})..."
