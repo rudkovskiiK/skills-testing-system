@@ -142,7 +142,7 @@ addTaskToDb() {
                Use: #|// :class: [A-Za-z0-9_]+"
     fi
     local run_com_tmpl="$(getSpecialCommentBody "$task" 'run' | head -1)"
-    if ! echo "$run_com_tmpl" | grep -P "^\w+\s+{}.*$" &> /dev/null; then
+    if ! echo "$run_com_tmpl" | grep -P "^[a-zA-Z0-9_+]+\s+{}.*$" &> /dev/null; then
         error "Error: missing or invalid run instruction in the task file \"$task\"!
                Correct examples:
                #|// :run: gcc {} -o exe && ./exe
