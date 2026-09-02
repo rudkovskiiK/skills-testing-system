@@ -19,7 +19,8 @@ import {EditorState} from "@codemirror/state"
 import {StreamLanguage} from "@codemirror/language"
 import {python} from "@codemirror/legacy-modes/mode/python"
 import {shell} from "@codemirror/legacy-modes/mode/shell"
-
+import {c} from "@codemirror/legacy-modes/mode/clike"
+import {cpp} from "@codemirror/legacy-modes/mode/clike"
 var runCodeButton = document.getElementById("runCodeButton");
 var goNextTaskButton = document.getElementById("goNextTaskButton");
 var codeArea = document.getElementById("codeArea");
@@ -30,6 +31,8 @@ var totalResultSpan = document.getElementById("totalResult");
 let languages = new Map();
 languages.set("py", python);
 languages.set("sh", shell);
+languages.set("c", c);
+languages.set("cpp", cpp);
 let languageName = document.getElementById("taskLanguage").innerHTML;
 
 let code = codeArea.innerHTML;
