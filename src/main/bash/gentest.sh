@@ -234,18 +234,20 @@ for group in "$groupDir/"*; do
     info "\nAdding student group \"$groupName\" to database..."
     echo "INSERT INTO groups (id, name) VALUES ($groupId, '$groupName')" | sqlite3 "$dbFile"
     printOk
+    s='[[:space:]]'
     while read line
     do
+        line=$(echo "$line" | sed "s/^$s*\|$s*$//g ; s/$s*,$s*/,/g")
         if [ -z "$(echo "$line" | grep -P '^[A-Za-zА-Яа-яёЁ\- ]+,[^, \t]+(,\d+L\d+M\d+H)?,?$')" ]; then
             error "Error: invalid student line \"$line\". Use: \"full_name,password[,nLnMnH (n - number)]\""
         fi
-        fullName="$(echo "$line" | cut -d ',' -f 1 | sed 's/^[ \t]*\|[ \t]*$//g')"
-        hashPassw="$(echo "$line" | cut -d ',' -f 2 | sed 's/^[ \t]*\|[ \t]*$//g' | htpasswd -inBC 12 '' | tr -d ':\n')"
+        fullName="$(echo "$line" | cut -d ',' -f 1)"
+        hashPassw="$(echo "$line" | cut -d ',' -f 2 | htpasswd -inBC 12 '' | tr -d ':\n')"
         info "\n\tAdding student \"$fullName\" to database..."
         echo "INSERT INTO students (id, full_name, password, group_id) \
         VALUES ($studentId, '$fullName', '$hashPassw', $groupId)" | sqlite3 "$dbFile"
         printOk
-        studentTaskDistribution="$(echo "$line" | cut -d ',' -f 3 2> /dev/null | sed 's/^[ \t]*\|[ \t]*$//g')"
+        studentTaskDistribution="$(echo "$line" | cut -d ',' -f 3 2> /dev/null)"
         studentTaskDistribution="${studentTaskDistribution:=$groupTaskDistribution}"
         distributeTasks $studentId $studentTaskDistribution
         studentId=$(( $studentId + 1 ))
