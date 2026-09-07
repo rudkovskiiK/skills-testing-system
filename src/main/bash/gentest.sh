@@ -107,6 +107,16 @@ if [ -d "$taskDir/data" ]; then
     fi
 fi
 
+getNextIdInDBTable() {
+    local table="$1"
+    local lastId="$(echo "SELECT MAX(id) FROM $table" | sqlite3 "$dbFile")"
+    if [ -z "$lastId" ]; then
+        echo "1"
+    else
+        echo $(( $lastId + 1 ))
+    fi
+}
+
 getSpecialCommentBody() {
     local task="$1"
     local keyWord="$2"
@@ -116,7 +126,6 @@ getSpecialCommentBody() {
 
 addTaskToDb() {
     local task="$1"
-    local taskId="$2"
     local language="${task##*.}"
     local description="$(getSpecialCommentBody "$task" 'd' | tr '\n' ' ' | tr "'" '"')"
     if [ -z "$description" ]; then
@@ -166,6 +175,7 @@ addTaskToDb() {
     if [ "$language" = 'py' ]; then
         run_script="source /pyenv/bin/activate ; $run_script"
     fi
+    local taskId="$(getNextIdInDBTable 'tasks')"
     info "\nAdding ${taskLabels[$diffLevel]}-level (\"$class\"-class) task with id $taskId: \"$description\" to database..."
     echo "INSERT INTO tasks (id, description, answer, difficulty_level, class, language, run_script) VALUES \
         ($taskId, '$description', '$hashAnswer', $diffLevel, '$class', '$language', '$run_script')" | sqlite3 "$dbFile"
@@ -204,13 +214,11 @@ distributeTasks() {
 }
 
 # adding tasks to the DB
-taskId=1
 for task in "$taskDir/"*.*; do
     if [ ! -f "$task" ]; then
         continue
     fi
-    addTaskToDb "$task" "$taskId"
-    taskId=$(( $taskId + 1 ))
+    addTaskToDb "$task"
 done
 
 # Adding students and distributing tasks
