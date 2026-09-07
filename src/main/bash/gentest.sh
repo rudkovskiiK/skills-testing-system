@@ -222,8 +222,40 @@ for task in "$taskDir/"*.*; do
 done
 
 # Adding students and distributing tasks
-studentId=1
-groupId=1
+addGroupAndItsStudentsToDb() {
+    local groupName="${group##*/}"
+    groupName="${groupName%_*}"
+    local query="SELECT (id) FROM groups WHERE name = '$groupName'"
+    if [ ! -z "$(echo "$query" | sqlite3 "$dbFile")" ]; then
+        error "Error: the following group name occurs twice: \"$groupName\""
+    fi
+    local groupTaskDistribution="${group##*_}"
+    groupTaskDistribution="${groupTaskDistribution%.csv}"
+    local groupId="$(getNextIdInDBTable 'groups')"
+    info "\nAdding student group \"$groupName\" to database..."
+    echo "INSERT INTO groups (id, name) VALUES ($groupId, '$groupName')" | sqlite3 "$dbFile"
+    printOk
+    local s='[[:space:]]'
+    local line
+    while read line
+    do
+        line=$(echo "$line" | sed "s/^$s*\|$s*$//g ; s/$s*,$s*/,/g")
+        if [ -z "$(echo "$line" | grep -P '^[A-Za-zА-Яа-яёЁ\- ]+,[^, \t]+(,\d+L\d+M\d+H)?,?$')" ]; then
+            error "Error: invalid student line \"$line\". Use: \"full_name,password[,nLnMnH (n - number)]\""
+        fi
+        local fullName="$(echo "$line" | cut -d ',' -f 1)"
+        local hashPassw="$(echo "$line" | cut -d ',' -f 2 | htpasswd -inBC 12 '' | tr -d ':\n')"
+        local studentId="$(getNextIdInDBTable 'students')"
+        info "\n\tAdding student \"$fullName\" to database..."
+        echo "INSERT INTO students (id, full_name, password, group_id) \
+        VALUES ($studentId, '$fullName', '$hashPassw', $groupId)" | sqlite3 "$dbFile"
+        printOk
+        local studentTaskDistribution="$(echo "$line" | cut -d ',' -f 3 2> /dev/null)"
+        studentTaskDistribution="${studentTaskDistribution:=$groupTaskDistribution}"
+        distributeTasks $studentId $studentTaskDistribution
+    done < "$group"
+}
+
 for group in "$groupDir/"*; do
     if [ ! -f "$group" ]; then
         error "Error: \"$group\" isn't a file!"
@@ -231,36 +263,7 @@ for group in "$groupDir/"*; do
     if [ -z "$(echo "${group##*/}" | grep -P '^[A-Za-zА-Яа-яёЁ0-9-]+_\d+L\d+M\d+H\.csv$')" ]; then
         error "Error: invalid group file name \"$group\". Correct example: \"groupName_3L4M2H.csv\""
     fi
-    groupName="${group##*/}"
-    groupName="${groupName%_*}"
-    query="SELECT (id) FROM groups WHERE name = '$groupName'"
-    if [ ! -z "$(echo "$query" | sqlite3 "$dbFile")" ]; then
-        error "Error: the following group name occurs twice: \"$groupName\""
-    fi
-    groupTaskDistribution="${group##*_}"
-    groupTaskDistribution="${groupTaskDistribution%.csv}"
-    info "\nAdding student group \"$groupName\" to database..."
-    echo "INSERT INTO groups (id, name) VALUES ($groupId, '$groupName')" | sqlite3 "$dbFile"
-    printOk
-    s='[[:space:]]'
-    while read line
-    do
-        line=$(echo "$line" | sed "s/^$s*\|$s*$//g ; s/$s*,$s*/,/g")
-        if [ -z "$(echo "$line" | grep -P '^[A-Za-zА-Яа-яёЁ\- ]+,[^, \t]+(,\d+L\d+M\d+H)?,?$')" ]; then
-            error "Error: invalid student line \"$line\". Use: \"full_name,password[,nLnMnH (n - number)]\""
-        fi
-        fullName="$(echo "$line" | cut -d ',' -f 1)"
-        hashPassw="$(echo "$line" | cut -d ',' -f 2 | htpasswd -inBC 12 '' | tr -d ':\n')"
-        info "\n\tAdding student \"$fullName\" to database..."
-        echo "INSERT INTO students (id, full_name, password, group_id) \
-        VALUES ($studentId, '$fullName', '$hashPassw', $groupId)" | sqlite3 "$dbFile"
-        printOk
-        studentTaskDistribution="$(echo "$line" | cut -d ',' -f 3 2> /dev/null)"
-        studentTaskDistribution="${studentTaskDistribution:=$groupTaskDistribution}"
-        distributeTasks $studentId $studentTaskDistribution
-        studentId=$(( $studentId + 1 ))
-    done < "$group"
-    groupId=$(( $groupId + 1 ))
+    addGroupAndItsStudentsToDb "$group"
 done
 
 info "\nCreating python environment for sandbox..."
