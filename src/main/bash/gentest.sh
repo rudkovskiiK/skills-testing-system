@@ -107,7 +107,7 @@ if [ -d "$taskDir/data" ]; then
     fi
 fi
 
-getNextIdInDBTable() {
+getNextIdInDbTable() {
     local table="$1"
     local lastId="$(echo "SELECT MAX(id) FROM $table" | sqlite3 "$dbFile")"
     if [ -z "$lastId" ]; then
@@ -175,7 +175,7 @@ addTaskToDb() {
     if [ "$language" = 'py' ]; then
         run_script="source /pyenv/bin/activate ; $run_script"
     fi
-    local taskId="$(getNextIdInDBTable 'tasks')"
+    local taskId="$(getNextIdInDbTable 'tasks')"
     info "\nAdding ${taskLabels[$diffLevel]}-level (\"$class\"-class) task with id $taskId: \"$description\" to database..."
     echo "INSERT INTO tasks (id, description, answer, difficulty_level, class, language, run_script) VALUES \
         ($taskId, '$description', '$hashAnswer', $diffLevel, '$class', '$language', '$run_script')" | sqlite3 "$dbFile"
@@ -231,7 +231,7 @@ addGroupAndItsStudentsToDb() {
     fi
     local groupTaskDistribution="${group##*_}"
     groupTaskDistribution="${groupTaskDistribution%.csv}"
-    local groupId="$(getNextIdInDBTable 'groups')"
+    local groupId="$(getNextIdInDbTable 'groups')"
     info "\nAdding student group \"$groupName\" to database..."
     echo "INSERT INTO groups (id, name) VALUES ($groupId, '$groupName')" | sqlite3 "$dbFile"
     printOk
@@ -245,7 +245,7 @@ addGroupAndItsStudentsToDb() {
         fi
         local fullName="$(echo "$line" | cut -d ',' -f 1)"
         local hashPassw="$(echo "$line" | cut -d ',' -f 2 | htpasswd -inBC 12 '' | tr -d ':\n')"
-        local studentId="$(getNextIdInDBTable 'students')"
+        local studentId="$(getNextIdInDbTable 'students')"
         info "\n\tAdding student \"$fullName\" to database..."
         echo "INSERT INTO students (id, full_name, password, group_id) \
         VALUES ($studentId, '$fullName', '$hashPassw', $groupId)" | sqlite3 "$dbFile"
