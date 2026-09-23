@@ -164,13 +164,22 @@ addTaskToDb() {
     pushd "$run_dir" &> /dev/null
     local answer
     answer="$(bash -c "$run_com")" || error "Error in task: \"$task\""
-    popd &> /dev/null
-    rm -rf "$run_dir"
-    local answer="$(echo "$answer" | sed 's/[^0-9A-Za-zа-яА-Я+-.,]//g' | tr -d '\n')"
-    if [ -z "$answer" ]; then
+    local filteredAnswer="$(echo "$answer" | sed 's/[^0-9A-Za-zа-яА-Я+-.,]//g' | tr -d '\n')"
+    if [ -z "$filteredAnswer" ]; then
         error "Error: The answer to task \"$task\" is empty!"
     fi
-    local hashAnswer="$(echo -n "$answer" | sha256sum | tr -d ' \-\n')"
+    local hashAnswer="$(echo -n "$filteredAnswer" | sha256sum | tr -d ' \-\n')"
+    local hashPng=""
+    if ls *.png &> /dev/null; then
+        hashPng="$(cat *.png | sha256sum | tr -d ' \-\n')"
+    fi
+    local hashJpeg=""
+    if ls *.jpeg &> /dev/null; then
+        hashJpeg="$(cat *.jpeg | sha256sum | tr -d ' \-\n')"
+    fi
+    hashAnswer="$(echo -n "${hashAnswer}${hashPng}${hashJpeg}" | sha256sum | tr -d ' \-\n')"
+    popd &> /dev/null
+    rm -rf "$run_dir"
     local run_script="$(echo "$run_com_tmpl" | sed "s|{}|/code.$language|")"
     if [ "$language" = 'py' ]; then
         run_script="source /pyenv/bin/activate ; $run_script"
@@ -363,6 +372,14 @@ if [ "$(cat "$(pwd)/work-tmp/out/${studentId}.txt" | wc -c)" -eq "$(( 2048 * 102
 fi
 curDate="$(date +%Y%m%d%H%M%S)"
 pushd "$(pwd)/work-tmp/stud-home/$studentId" &> /dev/null
+hashPng=""
+if ls *.png &> /dev/null; then
+    hashPng="$(cat *.png | sha256sum | tr -d ' \-\n')"
+fi
+local hashJpeg=""
+if ls *.jpeg &> /dev/null; then
+    hashJpeg="$(cat *.jpeg | sha256sum | tr -d ' \-\n')"
+fi
 for fileName in *.{png,jpeg}; do
     if [ -f "$fileName" ]; then
         if [ "$(cat "$fileName" | wc -c)" -eq "$(( 2048 * 1024 ))" ]; then
@@ -375,7 +392,8 @@ for fileName in *.{png,jpeg}; do
 done
 popd &> /dev/null
 answer="$(cat "$(pwd)/work-tmp/out/${studentId}.txt" | tail -n +2)"
-hashAnswer="$(echo "$answer" | sed 's/[^0-9A-Za-zа-яА-Я+-.,]//g' | tr -d "\n" | sha256sum | tr -d " \-\n")"
+hashAnswer="$(echo "$answer" | sed 's/[^0-9A-Za-zа-яА-Я+-.,]//g' | tr -d '\n' | sha256sum | tr -d ' \-\n')"
+hashAnswer="$(echo -n "${hashAnswer}${hashPng}${hashJpeg}" | sha256sum | tr -d ' \-\n')"
 if [ "$hashAnswer" == "$hashCorrectAnswer" ]; then
     exit 0
 else
