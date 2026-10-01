@@ -177,7 +177,7 @@ addTaskToDb() {
     if ls *.jpeg &> /dev/null; then
         hashJpeg="$(cat *.jpeg | sha256sum | tr -d ' \-\n')"
     fi
-    hashAnswer="$(echo -n "${hashAnswer}${hashPng}${hashJpeg}" | sha256sum | tr -d ' \-\n')"
+    hashAnswer="${hashAnswer}${hashPng}${hashJpeg}"
     popd &> /dev/null
     rm -rf "$runDir"
     local runScript="$(echo "$runComTmpl" | sed "s|{}|/code.$language|")"
@@ -393,7 +393,7 @@ done
 popd &> /dev/null
 answer="$(cat "$(pwd)/work-tmp/out/${studentId}.txt" | tail -n +2)"
 hashAnswer="$(echo "$answer" | sed 's/[^0-9A-Za-zа-яА-Я+-.,]//g' | tr -d '\n' | sha256sum | tr -d ' \-\n')"
-hashAnswer="$(echo -n "${hashAnswer}${hashPng}${hashJpeg}" | sha256sum | tr -d ' \-\n')"
+hashAnswer="${hashAnswer}${hashPng}${hashJpeg}"
 if [ "$hashAnswer" == "$hashCorrectAnswer" ]; then
     exit 0
 else
