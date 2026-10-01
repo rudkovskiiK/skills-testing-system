@@ -148,22 +148,22 @@ addTaskToDb() {
         error "Error: missing or invalid class label in the task file \"$task\"!
                Use: #|// :class: [A-Za-z0-9_]+"
     fi
-    local run_com_tmpl="$(getSpecialCommentBody "$task" 'run' | head -1)"
-    if ! echo "$run_com_tmpl" | grep -P "^[a-zA-Z0-9_+]+\s+{}.*$" &> /dev/null; then
+    local runComTmpl="$(getSpecialCommentBody "$task" 'run' | head -1)"
+    if ! echo "$runComTmpl" | grep -P "^[a-zA-Z0-9_+]+\s+{}.*$" &> /dev/null; then
         error "Error: missing or invalid run instruction in the task file \"$task\"!
                Correct examples:
                #|// :run: gcc {} -o exe && ./exe
                #|// :run: python {}"
     fi
-    local run_com="$(echo "$run_com_tmpl" | sed "s|{}|$task|")"
-    local run_dir="$testDir/run"
-    mkdir "$run_dir"
+    local runCom="$(echo "$runComTmpl" | sed "s|{}|$task|")"
+    local runDir="$testDir/run"
+    mkdir "$runDir"
     if [ -d "$testDir/data" ]; then
-        ln -s "$testDir/data" "$run_dir/data"
+        ln -s "$testDir/data" "$runDir/data"
     fi
-    pushd "$run_dir" &> /dev/null
+    pushd "$runDir" &> /dev/null
     local answer
-    answer="$(bash -c "$run_com")" || error "Error in task: \"$task\""
+    answer="$(bash -c "$runCom")" || error "Error in task: \"$task\""
     local filteredAnswer="$(echo "$answer" | sed 's/[^0-9A-Za-zа-яА-Я+-.,]//g' | tr -d '\n')"
     if [ -z "$filteredAnswer" ]; then
         error "Error: The answer to task \"$task\" is empty!"
@@ -179,15 +179,15 @@ addTaskToDb() {
     fi
     hashAnswer="$(echo -n "${hashAnswer}${hashPng}${hashJpeg}" | sha256sum | tr -d ' \-\n')"
     popd &> /dev/null
-    rm -rf "$run_dir"
-    local run_script="$(echo "$run_com_tmpl" | sed "s|{}|/code.$language|")"
+    rm -rf "$runDir"
+    local runScript="$(echo "$runComTmpl" | sed "s|{}|/code.$language|")"
     if [ "$language" = 'py' ]; then
-        run_script="source /pyenv/bin/activate ; $run_script"
+        runScript="source /pyenv/bin/activate ; $runScript"
     fi
     local taskId="$(getNextIdInDbTable 'tasks')"
     info "\nAdding ${taskLabels[$diffLevel]}-level (\"$class\"-class) task with id $taskId: \"$description\" to database..."
     echo "INSERT INTO tasks (id, description, answer, difficulty_level, class, language, run_script) VALUES \
-        ($taskId, '$description', '$hashAnswer', $diffLevel, '$class', '$language', '$run_script')" | sqlite3 "$dbFile"
+        ($taskId, '$description', '$hashAnswer', $diffLevel, '$class', '$language', '$runScript')" | sqlite3 "$dbFile"
     printOk
 }
 
@@ -335,7 +335,7 @@ cat > "$testDir/run-stud-code.sh" << 'EOF'
 studentId="$1"
 hashCorrectAnswer="$2"
 language="$3"
-run_script="$4"
+runScript="$4"
 rm -rf "$(pwd)/work-tmp/stud-home/$studentId/"* 2> /dev/null
 rm -rf "$(pwd)/work-tmp/stud-home/$studentId/".* 2> /dev/null
 rm "$(pwd)/work-tmp/msg/$studentId.txt" 2> /dev/null
@@ -365,7 +365,7 @@ bwrap \
 --bind "$(pwd)/work-tmp/stud-home/$studentId" /home/student \
 --ro-bind "$(pwd)/data" /home/student/data \
 --chdir /home/student \
-bash -c "$run_script" &> "$(pwd)/work-tmp/out/${studentId}.txt"
+bash -c "$runScript" &> "$(pwd)/work-tmp/out/${studentId}.txt"
 
 if [ "$(cat "$(pwd)/work-tmp/out/${studentId}.txt" | wc -c)" -eq "$(( 2048 * 1024 ))" ]; then
     echo "The program output may have exceeded 2 MiB!" >> "$(pwd)/work-tmp/msg/${studentId}.txt"
