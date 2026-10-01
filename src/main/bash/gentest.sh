@@ -164,7 +164,7 @@ addTaskToDb() {
     pushd "$runDir" &> /dev/null
     local answer
     answer="$(bash -c "$runCom")" || error "Error in task: \"$task\""
-    local filteredAnswer="$(echo "$answer" | sed 's/[^0-9A-Za-zа-яА-Я+-.,]//g' | tr -d '\n')"
+    local filteredAnswer="$(echo "${answer,,}" | sed 's/[^0-9a-zа-яё+-.,]//g' | tr -d '\n')"
     if [ -z "$filteredAnswer" ]; then
         error "Error: The answer to task \"$task\" is empty!"
     fi
@@ -392,7 +392,7 @@ for fileName in *.{png,jpeg}; do
 done
 popd &> /dev/null
 answer="$(cat "$(pwd)/work-tmp/out/${studentId}.txt" | tail -n +2)"
-hashAnswer="$(echo "$answer" | sed 's/[^0-9A-Za-zа-яА-Я+-.,]//g' | tr -d '\n' | sha256sum | tr -d ' \-\n')"
+hashAnswer="$(echo "${answer,,}" | sed 's/[^0-9a-zа-яё+-.,]//g' | tr -d '\n' | sha256sum | tr -d ' \-\n')"
 hashAnswer="${hashAnswer}${hashPng}${hashJpeg}"
 if [ "$hashAnswer" == "$hashCorrectAnswer" ]; then
     exit 0
