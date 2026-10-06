@@ -254,6 +254,10 @@ addGroupAndItsStudentsToDb() {
         local fullName="$(echo "$line" | cut -d ',' -f 1)"
         local hashPassw="$(echo "$line" | cut -d ',' -f 2 | htpasswd -inBC 12 '' | tr -d ':\n')"
         local studentId="$(getNextIdInDbTable 'students')"
+        query="SELECT (id) FROM students WHERE full_name = '$fullName' AND group_id = $groupId"
+        if [ ! -z "$(echo "$query" | sqlite3 "$dbFile")" ]; then
+            error "Error: the following student occurs twice: \"$fullName\" (group: \"$groupName\")"
+        fi
         info "\n\tAdding student \"$fullName\" to database..."
         echo "INSERT INTO students (id, full_name, password, group_id) \
         VALUES ($studentId, '$fullName', '$hashPassw', $groupId)" | sqlite3 "$dbFile"
