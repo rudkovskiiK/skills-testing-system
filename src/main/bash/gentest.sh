@@ -248,7 +248,6 @@ addGroupAndItsStudentsToDb() {
     local line
     while read line
     do
-        line=$(echo "$line" | sed "s/^$s*\|$s*$//g ; s/$s*,$s*/,/g")
         if [ -z "$(echo "$line" | grep -P '^[A-Za-zА-Яа-яёЁ\- ]+,[^, \t]+(,\d+L\d+M\d+H)?,?$')" ]; then
             error "Error: invalid student line \"$line\". Use: \"full_name,password[,nLnMnH (n - number)]\""
         fi
@@ -262,7 +261,7 @@ addGroupAndItsStudentsToDb() {
         local studentTaskDistribution="$(echo "$line" | cut -d ',' -f 3 2> /dev/null)"
         studentTaskDistribution="${studentTaskDistribution:=$groupTaskDistribution}"
         distributeTasks $studentId $studentTaskDistribution
-    done < "$group"
+    done <<< "$(cat "$group" | sed "s/^$s*\|$s*$//g ; s/$s*,$s*/,/g" | sort)"
 }
 
 for group in "$groupDir/"*; do
