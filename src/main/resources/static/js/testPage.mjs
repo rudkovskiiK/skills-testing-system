@@ -35,7 +35,7 @@ languages.set("c", c);
 languages.set("cpp", cpp);
 let languageName = document.getElementById("taskLanguage").innerHTML;
 
-let code = codeArea.innerHTML;
+let code = codeArea.textContent
 while(codeArea.firstChild) {
     codeArea.removeChild(codeArea.firstChild);
 }
