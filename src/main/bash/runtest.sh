@@ -157,7 +157,7 @@ while read line; do
     elif checkCmd "$line" '^s$'; then
         printStudents | indent
     elif checkCmd "$line" '^s csv$'; then
-        printStudents | sed 's/\s*|\s*/,/g'
+        printStudents | sed 's/\s*|\s*/,/g' | sort -t ',' -k 2
     elif checkCmd "$line" '^sg \d+$'; then
         groupId="$(echo "$line" | cut -d ' ' -f 2)"
         printStudents "$groupId" | indent
