@@ -178,8 +178,10 @@ addTaskToDb() {
         hashJpeg="$(cat *.jpeg | sha256sum | tr -d ' \-\n')"
     fi
     hashAnswer="${hashAnswer}${hashPng}${hashJpeg}"
+    rm -f data
     popd &> /dev/null
-    rm -rf "$runDir"
+    chmod -R u+w "$runDir"
+    rm -r "$runDir"
     local runScript="$(echo "$runComTmpl" | sed "s|{}|/code.$language|")"
     if [ "$language" = 'py' ]; then
         runScript="source /pyenv/bin/activate ; $runScript"
