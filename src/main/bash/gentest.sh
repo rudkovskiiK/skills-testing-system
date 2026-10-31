@@ -44,8 +44,8 @@ printOk
 
 error() {
     echo -e "\033[33m$1\033[0m" | tr -s ' ' >&2 # $1 - message
-    find "$testDir/data" -type d -exec chmod 755 {} \; &> /dev/null
-    rm -rf "$testDir"
+    chmod -R 777 "$testDir"
+    rm -r "$testDir"
     exit 1
 }
 
@@ -102,7 +102,6 @@ if [ -d "$taskDir/data" ]; then
     if ls "$taskDir/data/"* &> /dev/null; then
         info "Copying files from directory \"$taskDir/data\"..."
         cp -r "$taskDir/data/"* "$testDir/data"
-        chmod -R ugo-w "$testDir/data"
         printOk
     fi
 fi
@@ -158,9 +157,7 @@ addTaskToDb() {
     local runCom="$(echo "$runComTmpl" | sed "s|{}|$task|")"
     local runDir="$testDir/run"
     mkdir "$runDir"
-    if [ -d "$testDir/data" ]; then
-        ln -s "$testDir/data" "$runDir/data"
-    fi
+    ln -s "$testDir/data" "$runDir/data"
     pushd "$runDir" &> /dev/null
     local answer
     answer="$(bash -c "$runCom")" || error "Error in task: \"$task\""
@@ -178,10 +175,17 @@ addTaskToDb() {
         hashJpeg="$(cat *.jpeg | sha256sum | tr -d ' \-\n')"
     fi
     hashAnswer="${hashAnswer}${hashPng}${hashJpeg}"
-    rm -f data
     popd &> /dev/null
-    chmod -R u+w "$runDir"
+    chmod 755 "$runDir"
+    rm -f "$runDir/data"
+    chmod -R 777 "$runDir"
     rm -r "$runDir"
+    if [ -d "$taskDir/data" ]; then
+        diff -r "$taskDir/data" "$testDir/data" &> /dev/null
+        if [ "$?" -ne 0 ]; then
+            error "Error: Task \"$task\" modifies directory \"$testDir/data\"!"
+        fi
+    fi
     local runScript="$(echo "$runComTmpl" | sed "s|{}|/code.$language|")"
     if [ "$language" = 'py' ]; then
         runScript="source /pyenv/bin/activate ; $runScript"
