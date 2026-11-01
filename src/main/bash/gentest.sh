@@ -176,10 +176,7 @@ addTaskToDb() {
     fi
     hashAnswer="${hashAnswer}${hashPng}${hashJpeg}"
     popd &> /dev/null
-    chmod 755 "$runDir"
-    rm -f "$runDir/data"
-    chmod -R 777 "$runDir"
-    rm -r "$runDir"
+    rm -rf "$runDir" &> /dev/null || error "The results of running task \"$task\" prevented the deletion of the directory \"$runDir\"!"
     if [ -d "$taskDir/data" ]; then
         diff -r "$taskDir/data" "$testDir/data" &> /dev/null
         if [ "$?" -ne 0 ]; then
