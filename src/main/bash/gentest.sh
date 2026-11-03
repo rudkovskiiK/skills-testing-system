@@ -282,7 +282,7 @@ for group in "$groupDir/"*; do
 done
 
 info "\nCreating python environment for sandbox..."
-mkdir "$testDir/lib/pyenv"
+mkdir "$testDir/pyenv"
 bwrap \
 --new-session \
 --unshare-all \
@@ -292,7 +292,7 @@ bwrap \
 --symlink /usr/lib64 /lib64 \
 --ro-bind /etc /etc \
 --dev /dev \
---bind "$testDir/lib/pyenv" /pyenv \
+--bind "$testDir/pyenv" /pyenv \
 bash -c 'python3 -m venv /pyenv'
 printOk
 
@@ -311,7 +311,7 @@ if ls "$taskDir/"*.py &> /dev/null; then
         --symlink /usr/lib64 /lib64 \
         --ro-bind /etc /etc \
         --dev /dev \
-        --bind "$testDir/lib/pyenv" /pyenv \
+        --bind "$testDir/pyenv" /pyenv \
         bash -c ". /pyenv/bin/activate; \
         pip install $pyRequirements; \
         deactivate"
@@ -366,7 +366,7 @@ bwrap \
 --ro-bind /etc /etc \
 --setenv HOME /home/student \
 --dev /dev \
---ro-bind "$(pwd)/lib/pyenv" /pyenv \
+--ro-bind "$(pwd)/pyenv" /pyenv \
 --ro-bind "$(pwd)/work-tmp/code/${studentId}.txt" /code.$language \
 --bind "$(pwd)/work-tmp/stud-home/$studentId" /home/student \
 --ro-bind "$(pwd)/data" /home/student/data \

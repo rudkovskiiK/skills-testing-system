@@ -266,7 +266,7 @@ while read line; do
         --symlink /usr/lib64 /lib64 \
         --ro-bind /etc /etc \
         --dev /dev \
-        --bind "$(realpath $testDir)/lib/pyenv" /pyenv \
+        --bind "$(realpath $testDir)/pyenv" /pyenv \
         bash -c ". /pyenv/bin/activate;pip install $libName; deactivate" | indent
     elif checkCmd "$line" '^ip$'; then
         ip -br address | indent
