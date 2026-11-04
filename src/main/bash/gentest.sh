@@ -75,6 +75,7 @@ taskDir="$(realpath "$taskDir")"
 dbFile="$testDir/test.db"
 taskLabels=(L M H)
 
+mkdir "$testDir/pyenv"
 mkdir "$testDir/lib"
 mkdir "$testDir/data"
 mkdir "$testDir/work-tmp"
@@ -97,6 +98,14 @@ student_id INTEGER REFERENCES students(id) ON DELETE RESTRICT, \
 task_id INTEGER REFERENCES tasks(id) ON DELETE RESTRICT, code TEXT NOT NULL, \
 status BOOLEAN NOT NULL CHECK(status IN (0, 1)), UNIQUE(student_id, task_id));" | sqlite3 "$dbFile"
 printOk
+
+if [ -d "$taskDir/lib" ]; then
+    if ls "$taskDir/lib/"* &> /dev/null; then
+        info "Copying files from directory \"$taskDir/lib\"..."
+        cp -r "$taskDir/lib/"* "$testDir/lib"
+        printOk
+    fi
+fi
 
 if [ -d "$taskDir/data" ]; then
     if ls "$taskDir/data/"* &> /dev/null; then
@@ -158,6 +167,7 @@ addTaskToDb() {
     local runDir="$testDir/run"
     mkdir "$runDir"
     ln -s "$testDir/data" "$runDir/data"
+    ln -s "$testDir/lib" "$runDir/lib"
     pushd "$runDir" &> /dev/null
     local answer
     answer="$(bash -c "$runCom")" || error "Error in task: \"$task\""
@@ -282,7 +292,6 @@ for group in "$groupDir/"*; do
 done
 
 info "\nCreating python environment for sandbox..."
-mkdir "$testDir/pyenv"
 bwrap \
 --new-session \
 --unshare-all \
@@ -369,6 +378,7 @@ bwrap \
 --ro-bind "$(pwd)/pyenv" /pyenv \
 --ro-bind "$(pwd)/work-tmp/code/${studentId}.txt" /code.$language \
 --bind "$(pwd)/work-tmp/stud-home/$studentId" /home/student \
+--ro-bind "$(pwd)/lib" /home/student/lib \
 --ro-bind "$(pwd)/data" /home/student/data \
 --chdir /home/student \
 bash -c "$runScript" &> "$(pwd)/work-tmp/out/${studentId}.txt"
