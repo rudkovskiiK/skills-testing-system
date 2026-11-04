@@ -135,7 +135,7 @@ getSpecialCommentBody() {
 addTaskToDb() {
     local task="$1"
     local language="${task##*.}"
-    local description="$(getSpecialCommentBody "$task" 'd' | tr '\n' ' ' | tr "'" '"')"
+    local description="$(getSpecialCommentBody "$task" 'd' | sed "s/'/''/g" | tr '\n' ' ')"
     if [ -z "$description" ]; then
         error "Error: there is no description in the task file \"$task\"!
                Example description:
