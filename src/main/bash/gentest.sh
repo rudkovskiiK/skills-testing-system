@@ -156,7 +156,7 @@ addTaskToDb() {
         error "Error: missing or invalid class label in the task file \"$task\"!
                Use: #|// :class: [A-Za-z0-9_]+"
     fi
-    local runComTmpl="$(getSpecialCommentBody "$task" 'run' | head -1)"
+    local runComTmpl="$(getSpecialCommentBody "$task" 'run' | sed "s/'/''/g" | tr '\n' ' ')"
     if ! echo "$runComTmpl" | grep -P "^\S+.*\s+{}.*$" &> /dev/null; then
         error "Error: missing or invalid run instruction in the task file \"$task\"!
                Correct examples:
