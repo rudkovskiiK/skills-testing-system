@@ -416,7 +416,6 @@ else
     exit 1
 fi
 EOF
-chmod 550 "$testDir/run-stud-code.sh"
 printOk
 info "Done\n"
 exit 0
