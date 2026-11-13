@@ -64,30 +64,30 @@ getPropertyFromConfig() {
 }
 
 readConfig() {
-    local result=""
-    result="$(getPropertyFromConfig "timeout" "\d+")"
-    test $? -eq 0 && export STS_TIMEOUT="$result" || error "$result"
+    local answer=""
+    answer="$(getPropertyFromConfig "timeout" "\d+")"
+    test $? -eq 0 && export STS_TIMEOUT="$answer" || error "$answer"
 
-    result="$(getPropertyFromConfig "nice" "[0-9]|1[0-9]")"
-    test $? -eq 0 && export STS_NICE="$result" || error "$result"
+    answer="$(getPropertyFromConfig "nice" "[0-9]|1[0-9]")"
+    test $? -eq 0 && export STS_NICE="$answer" || error "$answer"
 
-    result="$(getPropertyFromConfig "MemoryHigh" "\d+[KMGT%]?|infinity")"
-    test $? -eq 0 && export STS_MEMORY_HIGH="$result" || error "$result"
+    answer="$(getPropertyFromConfig "MemoryHigh" "\d+[KMGT%]?|infinity")"
+    test $? -eq 0 && export STS_MEMORY_HIGH="$answer" || error "$answer"
 
-    result="$(getPropertyFromConfig "MemoryMax" "\d+[KMGT%]?|infinity")"
-    test $? -eq 0 && export STS_MEMORY_MAX="$result" || error "$result"
+    answer="$(getPropertyFromConfig "MemoryMax" "\d+[KMGT%]?|infinity")"
+    test $? -eq 0 && export STS_MEMORY_MAX="$answer" || error "$answer"
 
-    result="$(getPropertyFromConfig "MemorySwapMax" "\d+[KMGT]?|infinity")"
-    test $? -eq 0 && export STS_MEMORY_SWAP_MAX="$result" || error "$result"
+    answer="$(getPropertyFromConfig "MemorySwapMax" "\d+[KMGT]?|infinity")"
+    test $? -eq 0 && export STS_MEMORY_SWAP_MAX="$answer" || error "$answer"
 
-    result="$(getPropertyFromConfig "RunTasksMax" "\d+")"
-    test $? -eq 0 && export STS_RUN_TASKS_MAX="$result" || error "$result"
+    answer="$(getPropertyFromConfig "RunTasksMax" "\d+")"
+    test $? -eq 0 && export STS_RUN_TASKS_MAX="$answer" || error "$answer"
 
-    result="$(getPropertyFromConfig "StudProcMax" "\d+")"
-    test $? -eq 0 && export STS_STUD_PROC_MAX="$result" || error "$result"
+    answer="$(getPropertyFromConfig "StudProcMax" "\d+")"
+    test $? -eq 0 && export STS_STUD_PROC_MAX="$answer" || error "$answer"
 
-    result="$(getPropertyFromConfig "serverPort" "\d+")"
-    test $? -eq 0 && serverPort="$result" || error "$result"
+    answer="$(getPropertyFromConfig "serverPort" "\d+")"
+    test $? -eq 0 && serverPort="$answer" || error "$answer"
 }
 readConfig
 rm -rf "$testDir/work-tmp/"* 2> /dev/null
