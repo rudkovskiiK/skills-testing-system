@@ -40,7 +40,7 @@ dbFile="$testDir/test.db"
 confFile="$testDir/conf.txt"
 logFile="$testDir/log.txt"
 logNumLine="$(cat "$logFile" | wc -l)"
-export STS_SERVER_PID=-1
+serverPid=-1
 
 getPropertyFromConfig() {
     local propName="$1"
@@ -154,8 +154,8 @@ printStudents() {
 }
 
 quit() {
-    if [ $STS_SERVER_PID -ne -1 ]; then
-        kill $STS_SERVER_PID
+    if [ "$serverPid" -ne -1 ]; then
+        kill "$serverPid"
     fi
     echo -e '\r<< bye! >>'
     exit 0
@@ -242,7 +242,7 @@ while read line; do
     elif checkCmd "$line" '^start$'; then
         pushd "$testDir" &> /dev/null
         java -jar "$STS_SERVER_PATH" --server.port=$serverPort &>> "log.txt" &
-        STS_SERVER_PID=$!
+        serverPid=$!
         popd &> /dev/null
         sleep 2
         curLogNumLine=$(cat "$logFile" | wc -l)
@@ -255,9 +255,9 @@ while read line; do
             curLogNumLine=$(cat "$logFile" | wc -l)
         done
     elif checkCmd "$line" '^stop$'; then
-        if [ $STS_SERVER_PID -ne -1 ]; then
-            kill $STS_SERVER_PID
-            STS_SERVER_PID=-1
+        if [ "$serverPid" -ne -1 ]; then
+            kill "$serverPid"
+            serverPid=-1
         else
             echo -e '\033[33mError: server not running!\033[0m' | indent
         fi
