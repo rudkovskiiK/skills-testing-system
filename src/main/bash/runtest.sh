@@ -24,21 +24,21 @@ if [ $# -ne 1 ]; then
     error "Error! Use: runtest test_dir_name"
 fi
 
-if [ -z "$STS_SERVER_PATH" ]; then
-    error "Error: global variable \"STS_SERVER_PATH\" is not defined!"
-fi
-
 testDir="${1%/}"
-dbFile="$testDir/test.db"
-confFile="$testDir/conf.txt"
-logFile="$testDir/log.txt"
-
 if [ ! -d "$testDir" ]; then
     error "Error: directory \"$testDir\" doesn't exist!"
 fi
 if ! ls "$testDir/"{pyenv,conf.txt,lib,data,run-stud-code.sh,work-tmp,test.db,log.txt} &> /dev/null; then
     error "Error: directory \"$testDir\" isn't correct!"
 fi
+
+if [ -z "$STS_SERVER_PATH" ]; then
+    error "Error: global variable \"STS_SERVER_PATH\" is not defined!"
+fi
+
+dbFile="$testDir/test.db"
+confFile="$testDir/conf.txt"
+logFile="$testDir/log.txt"
 logNumLine="$(cat "$logFile" | wc -l)"
 export STS_SERVER_PID=-1
 
