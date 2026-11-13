@@ -42,40 +42,54 @@ fi
 logNumLine="$(cat "$logFile" | wc -l)"
 export STS_SERVER_PID=-1
 
-getPropertyFromFile() {
-    file="$1"
-    propName="$2"
-    templateValue="$3"
-    propStr="$(cat "$file" | tr -d '\t ' | grep -iP "^$propName:")"
-    if [ $? -ne 0 ]; then
-        echo -e "\033[33mError: property \"${propName}\" is incorrect or missing in file \"$file\"!\033[0m" >&2
+getPropertyFromConfig() {
+    local propName="$1"
+    local templateValue="$2"
+    local s='[[:space:]]'
+    local propValue="$(sed -n "s/$s//g ; s/^$propName://p" < "$confFile")"
+    if [ -z "$propValue" ]; then
+        echo "Error: property \"${propName}\" is incorrect or missing in configuration file!"
         return 1
     fi
-    if [ $(echo "$propStr" | wc -l) -gt 1 ]; then
-        echo -e "\033[33mError: property \"${propName}\" is duplicated in file \"$file\"!\033[0m" >&2
+    if [ "$(echo "$propValue" | wc -l)" -gt 1 ]; then
+        echo "Error: property \"${propName}\" is duplicated in configuration file!"
         return 2
     fi
-    value="${propStr#*:}"
-    if ! echo "$value" | grep -P "^($templateValue)$" &> /dev/null; then
-        echo -e "\033[33mError: the value of property \"$propName\" doesn't match the pattern \"$templateValue\" in file \"$file\"!\033[0m" >&2
+    if ! echo "$propValue" | grep -P "^($templateValue)$" &> /dev/null; then
+        echo "Error: the value of property \"$propName\" doesn't match the pattern \"$templateValue\" in configuration file!"
         return 3
     fi
-    echo "$value"
+    echo "$propValue" | tr -d '\n'
     return 0
 }
-STS_TIMEOUT=$(getPropertyFromFile "$confFile" "timeout" "\d+") || exit $?
-STS_NICE=$(getPropertyFromFile "$confFile" "nice" "\d+") || exit $?
-if [ $STS_NICE -gt 19 ]; then
-    error "Error: parameter \"nice\" cannot exceed 19!"
-fi
-STS_MEMORY_HIGH=$(getPropertyFromFile "$confFile" "MemoryHigh" "\d+[KMGT%]?|infinity") || exit $?
-STS_MEMORY_MAX=$(getPropertyFromFile "$confFile" "MemoryMax" "\d+[KMGT%]?|infinity") || exit $?
-STS_MEMORY_SWAP_MAX=$(getPropertyFromFile "$confFile" "MemorySwapMax" "\d+[KMGT]?|infinity") || exit $?
-STS_RUN_TASKS_MAX=$(getPropertyFromFile "$confFile" "RunTasksMax" "\d+") || exit $?
-STS_STUD_PROC_MAX=$(getPropertyFromFile "$confFile" "StudProcMax" "\d+") || exit $?
-export STS_TIMEOUT STS_NICE STS_MEMORY_HIGH STS_MEMORY_MAX STS_MEMORY_SWAP_MAX STS_RUN_TASKS_MAX STS_STUD_PROC_MAX
-serverPort=$(getPropertyFromFile "$confFile" "serverPort" "\d+") || exit $?
 
+readConfig() {
+    local result=""
+    result="$(getPropertyFromConfig "timeout" "\d+")"
+    test $? -eq 0 && export STS_TIMEOUT="$result" || error "$result"
+
+    result="$(getPropertyFromConfig "nice" "[0-9]|1[0-9]")"
+    test $? -eq 0 && export STS_NICE="$result" || error "$result"
+
+    result="$(getPropertyFromConfig "MemoryHigh" "\d+[KMGT%]?|infinity")"
+    test $? -eq 0 && export STS_MEMORY_HIGH="$result" || error "$result"
+
+    result="$(getPropertyFromConfig "MemoryMax" "\d+[KMGT%]?|infinity")"
+    test $? -eq 0 && export STS_MEMORY_MAX="$result" || error "$result"
+
+    result="$(getPropertyFromConfig "MemorySwapMax" "\d+[KMGT]?|infinity")"
+    test $? -eq 0 && export STS_MEMORY_SWAP_MAX="$result" || error "$result"
+
+    result="$(getPropertyFromConfig "RunTasksMax" "\d+")"
+    test $? -eq 0 && export STS_RUN_TASKS_MAX="$result" || error "$result"
+
+    result="$(getPropertyFromConfig "StudProcMax" "\d+")"
+    test $? -eq 0 && export STS_STUD_PROC_MAX="$result" || error "$result"
+
+    result="$(getPropertyFromConfig "serverPort" "\d+")"
+    test $? -eq 0 && serverPort="$result" || error "$result"
+}
+readConfig
 rm -rf "$testDir/work-tmp/"* 2> /dev/null
 mkdir "$testDir/work-tmp/code"
 mkdir "$testDir/work-tmp/out"
