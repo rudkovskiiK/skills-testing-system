@@ -98,17 +98,17 @@ mkdir "$testDir/work-tmp/msg"
 mkdir "$testDir/work-tmp/stud-home"
 
 checkCmd() {
-    line="$1"
-    template="$2"
+    local line="$1"
+    local template="$2"
     echo "$line" | grep -P "$template" &> /dev/null
     return $?
 }
 
 getStudentResult() {
-    studentId="$1"
-    allTasks=($(echo "SELECT task_id FROM students_tasks WHERE student_id = $studentId" | sqlite3 "$dbFile"))
-    solvedTasks=($(echo "SELECT task_id FROM results WHERE student_id = $studentId AND status = 1" | sqlite3 "$dbFile"))
-    result=$(echo "(${#solvedTasks[*]}/${#allTasks[*]})*100" | bc -l)
+    local studentId="$1"
+    local allTasks=($(echo "SELECT task_id FROM students_tasks WHERE student_id = $studentId" | sqlite3 "$dbFile"))
+    local solvedTasks=($(echo "SELECT task_id FROM results WHERE student_id = $studentId AND status = 1" | sqlite3 "$dbFile"))
+    local result=$(echo "(${#solvedTasks[*]}/${#allTasks[*]})*100" | bc -l)
     printf "%.2f" $result
 }
 
@@ -117,9 +117,9 @@ indent() {
 }
 
 printStudents() {
-    students=""
+    local students=""
     if [ $# -eq 1 ]; then
-        groupId="$1"
+        local groupId="$1"
         groupId="$(echo "SELECT id FROM groups WHERE id = $groupId" | sqlite3 "$dbFile")"
         if [ -n "$groupId" ]; then
             students="$(echo "SELECT s.id, s.full_name, s.login_permission, g.name\
@@ -132,18 +132,18 @@ printStudents() {
         students="$(echo "SELECT s.id, s.full_name, s.login_permission, g.name\
                    FROM students AS s JOIN groups AS g ON s.group_id = g.id" | sqlite3 "$dbFile")"
     fi
-    out='id|fullName|res(%)|lp|group'
+    local out='id|fullName|res(%)|lp|group'
     while read studLine; do
-        studentId="$(echo "$studLine" | cut -d '|' -f 1)"
-        fullName="$(echo "$studLine" | cut -d '|' -f 2)"
-        loginPermission="$(echo "$studLine" | cut -d '|' -f 3)"
+        local studentId="$(echo "$studLine" | cut -d '|' -f 1)"
+        local fullName="$(echo "$studLine" | cut -d '|' -f 2)"
+        local loginPermission="$(echo "$studLine" | cut -d '|' -f 3)"
         if [ "$loginPermission" -eq 1 ]; then
             loginPermission="\033[32mt\033[0m"
         else
             loginPermission="\033[31mf\033[0m"
         fi
-        group="$(echo "$studLine" | cut -d '|' -f 4)"
-        result="$(getStudentResult "$studentId")"
+        local group="$(echo "$studLine" | cut -d '|' -f 4)"
+        local result="$(getStudentResult "$studentId")"
         out+="\n$studentId|$fullName|$result|$loginPermission|$group"
     done <<< "$students"
     echo -e "$out" | column -t -s '|' -o ' | '
