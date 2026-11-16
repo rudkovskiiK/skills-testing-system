@@ -15,9 +15,27 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+serverPid=-1
+
+quit() {
+    local exitStatus="$1"
+    if [ "$serverPid" -ne -1 ]; then
+        kill "$serverPid"
+    fi
+    if [ "$exitStatus" -eq 0 ]; then
+        echo -e '\r<< bye! >>'
+    fi
+    exit "$exitStatus"
+}
+trap 'quit 0' SIGTERM SIGINT SIGQUIT
+
+echoYellow() {
+    echo -e "\033[33m$1\033[0m"
+}
+
 error() {
-   echo -e "\033[33m$1\033[0m" >&2 # $1 - message
-   exit 1
+    echoYellow "$1"
+    quit 1
 }
 
 if [ $# -ne 1 ]; then
@@ -40,7 +58,6 @@ dbFile="$testDir/test.db"
 confFile="$testDir/conf.txt"
 logFile="$testDir/log.txt"
 logNumLine="$(cat "$logFile" | wc -l)"
-serverPid=-1
 
 getPropertyFromConfig() {
     local propName="$1"
@@ -125,7 +142,7 @@ printStudents() {
             students="$(echo "SELECT s.id, s.full_name, s.login_permission, g.name\
                        FROM students AS s JOIN groups AS g ON s.group_id = g.id WHERE s.group_id = $groupId" | sqlite3 "$dbFile")"
         else
-            echo -e '\033[33mError: no such group id!\033[0m' | indent >&2
+            echoYellow "Error: no such group id!"
             return 1
         fi
     else
@@ -150,16 +167,6 @@ printStudents() {
     return 0
 }
 
-quit() {
-    if [ "$serverPid" -ne -1 ]; then
-        kill "$serverPid"
-    fi
-    echo -e '\r<< bye! >>'
-    exit 0
-}
-trap quit SIGTERM SIGINT SIGQUIT
-
-
 echo -en "\033[32m>> \033[0m"
 while read line; do
     line="$(echo "$line" | tr '\t' ' ' | tr -s ' ')"
@@ -183,7 +190,7 @@ while read line; do
         flag="$(echo "$line" | cut -d ' ' -f 3 | tr 't' '1' | tr 'f' '0')"
         n="$(echo "SELECT COUNT(*) FROM students WHERE id = $studentId" | sqlite3 "$dbFile")"
         if [ "$n" -eq 0 ]; then
-            echo -e '\033[33mError: no such student id!\033[0m' | indent
+            echoYellow "Error: no such student id!" | indent
         else
             echo "UPDATE students SET login_permission = $flag WHERE id = $studentId" | sqlite3 "$dbFile"
         fi
@@ -192,7 +199,7 @@ while read line; do
         flag="$(echo "$line" | cut -d ' ' -f 3 | tr 't' '1' | tr 'f' '0')"
         n="$(echo "SELECT COUNT(*) FROM groups WHERE id = $groupId" | sqlite3 "$dbFile")"
         if [ "$n" -eq 0 ]; then
-            echo -e '\033[33mError: no such group id!\033[0m' | indent
+            echoYellow 'Error: no such group id!' | indent
         else
             echo "UPDATE students SET login_permission = $flag WHERE group_id = $groupId" | sqlite3 "$dbFile"
         fi
@@ -200,7 +207,7 @@ while read line; do
         studentId="$(echo "$line" | cut -d ' ' -f 2)"
         n="$(echo "SELECT COUNT(*) FROM students WHERE id = $studentId" | sqlite3 "$dbFile")"
         if [ "$n" -eq 0 ]; then
-            echo -e '\033[33mError: no such student id!\033[0m' | indent
+            echoYellow 'Error: no such student id!' | indent
         else
             allTasks=($(echo "SELECT task_id FROM students_tasks WHERE student_id = $studentId ORDER BY task_id" | sqlite3 "$dbFile" | tr '\n' ' '))
             solvedTasks=($(echo "SELECT task_id FROM results WHERE student_id = $studentId AND status = 1 ORDER BY task_id" | sqlite3 "$dbFile" | tr '\n' ' '))
@@ -222,13 +229,13 @@ while read line; do
             nt="$(echo "SELECT COUNT(*) FROM tasks WHERE id = $taskId" | sqlite3 "$dbFile")"
             nst="$(echo "SELECT COUNT(*) FROM students_tasks WHERE student_id = $studentId AND task_id = $taskId" | sqlite3 "$dbFile")"
             if [ "$ns" -eq 0 ]; then
-                echo -e "\033[33mError: no such student with id = $studentId!\033[0m" | indent
+                echoYellow "Error: no such student with id = $studentId!" | indent
             elif [ "$nt" -eq 0 ]; then
-                echo -e "\033[33mError: no such task with id = $taskId!\033[0m" | indent
+                echoYellow "Error: no such task with id = $taskId!" | indent
             elif [ "$nst" -eq 0 ]; then
-                echo -e "\033[33mError: Task with id = $taskId is not assigned to student with id = $studentId\033[0m" | indent
+                echoYellow "Error: Task with id = $taskId is not assigned to student with id = $studentId" | indent
             else
-                echo -e "\033[33mError: student with id = $studentId has not yet started solving task with id = $taskId!\033[0m" | indent
+                echoYellow "Error: student with id = $studentId has not yet started solving task with id = $taskId!" | indent
             fi
         else
             description="$(echo "SELECT description FROM tasks WHERE id = $taskId" | sqlite3 "$dbFile")"
@@ -256,7 +263,7 @@ while read line; do
             kill "$serverPid"
             serverPid=-1
         else
-            echo -e '\033[33mError: server not running!\033[0m' | indent
+            echoYellow "Error: server not running!" | indent
         fi
     elif checkCmd "$line" '^log$'; then
         curLogNumLine="$(cat "$logFile" | wc -l)"
@@ -282,7 +289,7 @@ while read line; do
     elif checkCmd "$line" '^ip$'; then
         ip -br address | indent
     elif checkCmd "$line" '^q$'; then
-        quit
+        quit 0
     elif checkCmd "$line" '^h$'; then
         echo 'g - print list of all student groups' | indent
         echo 's - print list of all students' | indent
@@ -303,9 +310,9 @@ while read line; do
         echo 'h - print this help' | indent
     else
         if [ -n "$line" ]; then
-            echo -e '\033[33mError: invalid command, use help\033[0m' | indent
+            echoYellow "Error: invalid command, use help" | indent
         fi
     fi
     echo -en "\033[32m>> \033[0m"
 done
-quit
+quit 0
