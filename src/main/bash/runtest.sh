@@ -90,15 +90,12 @@ readConfig() {
     test $? -eq 0 && serverPort="$answer" || error "$answer"
 }
 readConfig
-rm -rf "$testDir/work-tmp/"* 2> /dev/null
+chmod -R 755 "$testDir/work-tmp/"* 2> /dev/null
+rm -rf "$testDir/work-tmp/"*
 mkdir "$testDir/work-tmp/code"
 mkdir "$testDir/work-tmp/out"
 mkdir "$testDir/work-tmp/msg"
 mkdir "$testDir/work-tmp/stud-home"
-studentIds="$(echo "SELECT id FROM students" | sqlite3 "$dbFile")"
-for studentId in $studentIds; do
-    mkdir "$testDir/work-tmp/stud-home/$studentId"
-done
 
 checkCmd() {
     line="$1"

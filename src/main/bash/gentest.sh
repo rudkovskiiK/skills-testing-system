@@ -351,9 +351,10 @@ studentId="$1"
 hashCorrectAnswer="$2"
 language="$3"
 runScript="$4"
-rm -rf "$(pwd)/work-tmp/stud-home/$studentId/"* 2> /dev/null
-rm -rf "$(pwd)/work-tmp/stud-home/$studentId/".* 2> /dev/null
-rm "$(pwd)/work-tmp/msg/$studentId.txt" 2> /dev/null
+chmod -R 755 "$(pwd)/work-tmp/stud-home/$studentId" 2> /dev/null
+rm -rf "$(pwd)/work-tmp/stud-home/$studentId"
+mkdir "$(pwd)/work-tmp/stud-home/$studentId"
+rm -f "$(pwd)/work-tmp/msg/$studentId.txt"
 ulimit -f 2048
 systemd-run \
 --scope \
