@@ -169,7 +169,7 @@ printStudents() {
 
 echo -en "\033[32m>> \033[0m"
 while read line; do
-    line="$(echo "$line" | tr '\t' ' ' | tr -s ' ')"
+    line="$(echo "$line" | sed -E 's/[[:space:]]{2,}/ /g ; s/^ | $//g')"
     if checkCmd "$line" '^g$'; then
         echo 'SELECT id, name FROM groups' | sqlite3 -header "$dbFile" | column -t -s '|' -o ' | ' | indent
     elif checkCmd "$line" '^s$'; then
