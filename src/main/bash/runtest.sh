@@ -140,14 +140,16 @@ printStudents() {
         groupId="$(echo "SELECT id FROM groups WHERE id = $groupId" | sqlite3 "$dbFile")"
         if [ -n "$groupId" ]; then
             students="$(echo "SELECT s.id, s.full_name, s.login_permission, g.name\
-                       FROM students AS s JOIN groups AS g ON s.group_id = g.id WHERE s.group_id = $groupId" | sqlite3 "$dbFile")"
+                       FROM students AS s JOIN groups AS g ON s.group_id = g.id\
+                       WHERE s.group_id = $groupId" | sqlite3 "$dbFile")"
         else
             echoYellow "Error: no such group id!"
             return 1
         fi
     else
         students="$(echo "SELECT s.id, s.full_name, s.login_permission, g.name\
-                   FROM students AS s JOIN groups AS g ON s.group_id = g.id" | sqlite3 "$dbFile")"
+                   FROM students AS s JOIN groups AS g ON s.group_id = g.id\
+                   ORDER BY s.full_name" | sqlite3 "$dbFile")"
     fi
     local out='id|fullName|res(%)|lp|group'
     while read studLine; do
@@ -175,7 +177,7 @@ while read line; do
     elif checkCmd "$line" '^s$'; then
         printStudents | indent
     elif checkCmd "$line" '^s csv$'; then
-        printStudents | sed 's/\s*|\s*/,/g' | sort -t ',' -k 2
+        printStudents | sed 's/\s*|\s*/,/g'
     elif checkCmd "$line" '^sg \d+$'; then
         groupId="$(echo "$line" | cut -d ' ' -f 2)"
         printStudents "$groupId" | indent
