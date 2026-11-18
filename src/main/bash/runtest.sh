@@ -172,6 +172,7 @@ printStudents() {
 echo -en "\033[32m>> \033[0m"
 while read line; do
     line="$(echo "$line" | sed -E 's/[[:space:]]{2,}/ /g ; s/^ | $//g')"
+    nArgs="$(echo "$line" | wc -w)"
     if checkCmd "$line" '^g$'; then
         echo 'SELECT id, name FROM groups' | sqlite3 -header "$dbFile" | column -t -s '|' -o ' | ' | indent
     elif checkCmd "$line" '^s$'; then
@@ -187,23 +188,23 @@ while read line; do
     elif checkCmd "$line" '^lp [tf]$'; then
         flag="$(echo "$line" | cut -d ' ' -f 2 | tr 't' '1' | tr 'f' '0')"
         echo "UPDATE students SET login_permission = $flag" | sqlite3 "$dbFile"
-    elif checkCmd "$line" '^lps \d+ [tf]$'; then
-        studentId="$(echo "$line" | cut -d ' ' -f 2)"
-        flag="$(echo "$line" | cut -d ' ' -f 3 | tr 't' '1' | tr 'f' '0')"
-        n="$(echo "SELECT COUNT(*) FROM students WHERE id = $studentId" | sqlite3 "$dbFile")"
-        if [ "$n" -eq 0 ]; then
-            echoYellow "Error: no such student id!" | indent
+    elif checkCmd "$line" '^lps (\d+ )+[tf]$'; then
+        studentIds="$(echo "$line" | cut -d ' ' -f 2-"$(( nArgs - 1 ))" | tr ' ' ',')"
+        flag="$(echo "$line" | cut -d ' ' -f "$nArgs" | tr 't' '1' | tr 'f' '0')"
+        nStudFound="$(echo "SELECT COUNT(*) FROM students WHERE id IN ($studentIds)" | sqlite3 "$dbFile")"
+        if [ "$nStudFound" -ne "$(( $nArgs - 2 ))" ]; then
+             echoYellow "Error: incorrect student id(s)!" | indent
         else
-            echo "UPDATE students SET login_permission = $flag WHERE id = $studentId" | sqlite3 "$dbFile"
+             echo "UPDATE students SET login_permission = $flag WHERE id IN ($studentIds)" | sqlite3 "$dbFile"
         fi
-    elif checkCmd "$line" '^lpg \d+ [tf]$'; then
-        groupId="$(echo "$line" | cut -d ' ' -f 2)"
-        flag="$(echo "$line" | cut -d ' ' -f 3 | tr 't' '1' | tr 'f' '0')"
-        n="$(echo "SELECT COUNT(*) FROM groups WHERE id = $groupId" | sqlite3 "$dbFile")"
-        if [ "$n" -eq 0 ]; then
-            echoYellow 'Error: no such group id!' | indent
+    elif checkCmd "$line" '^lpg (\d+ )+[tf]$'; then
+        groupIds="$(echo "$line" | cut -d ' ' -f 2-"$(( nArgs - 1 ))" | tr ' ' ',')"
+        flag="$(echo "$line" | cut -d ' ' -f "$nArgs" | tr 't' '1' | tr 'f' '0')"
+        nGroupFound="$(echo "SELECT COUNT(*) FROM groups WHERE id IN ($groupIds)" | sqlite3 "$dbFile")"
+        if [ "$nGroupFound" -ne "$(( $nArgs - 2 ))" ]; then
+             echoYellow "Error: incorrect group id(s)!" | indent
         else
-            echo "UPDATE students SET login_permission = $flag WHERE group_id = $groupId" | sqlite3 "$dbFile"
+             echo "UPDATE students SET login_permission = $flag WHERE group_id IN ($groupIds)" | sqlite3 "$dbFile"
         fi
     elif checkCmd "$line" '^st \d+$'; then
         studentId="$(echo "$line" | cut -d ' ' -f 2)"
@@ -299,8 +300,8 @@ while read line; do
         echo 'sg <group_id> - print a list of all students in the group' | indent
         echo 'sg <group_id> csv - print a list of all students in the group in csv format' | indent
         echo 'lp t|f - set the login permission flag for all students' | indent
-        echo 'lps <student_id> t|f - set the login permission flag for student' | indent
-        echo 'lpg <group_id> t|f - set the login permission flag for all students in the group' | indent
+        echo 'lps <student_ids> t|f - set the login permission flag for the specified students' | indent
+        echo 'lpg <group_ids> t|f - set the login permission flag for all students in the specified groups' | indent
         echo "st <student_id> - show student task id's" | indent
         echo "stc <student_id> <task_id> - show the description and code of the student's solution to the task" | indent
         echo 'start - web server start' | indent
