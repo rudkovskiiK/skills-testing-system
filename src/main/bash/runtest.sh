@@ -299,8 +299,8 @@ while read line; do
         echo 'g - print list of all student groups' | indent
         echo 's - print list of all students' | indent
         echo 's csv - print list of all students in csv format' | indent
-        echo 'sg <group_id> - print a list of all students in the group' | indent
-        echo 'sg <group_id> csv - print a list of all students in the group in csv format' | indent
+        echo 'sg <group_ids> - display a list of students from the specified groups' | indent
+        echo 'sg <group_ids> csv - display a list of students from the specified groups in csv format' | indent
         echo 'lp t|f - set the login permission flag for all students' | indent
         echo 'lps <student_ids> t|f - set the login permission flag for the specified students' | indent
         echo 'lpg <group_ids> t|f - set the login permission flag for all students in the specified groups' | indent
