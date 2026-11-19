@@ -180,13 +180,13 @@ while read line; do
     elif checkCmd "$line" '^s$'; then
         printStudents | indent
     elif checkCmd "$line" '^s csv$'; then
-        printStudents | sed 's/\s*|\s*/,/g'
+        printStudents | sed 's/[[:space:]]*|[[:space:]]*/,/g'
     elif checkCmd "$line" '^sg( \d+)+$'; then
         groupIds="$(echo "$line" | cut -d ' ' -f 2- | tr ' ' ',')"
         printStudents "$(( nArgs - 1 ))" "$groupIds" | indent
     elif checkCmd "$line" '^sg (\d+ )+csv$'; then
         groupIds="$(echo "$line" | cut -d ' ' -f 2-"$(( nArgs - 1 ))" | tr ' ' ',')"
-        printStudents "$(( nArgs - 2 ))" "$groupIds" | sed 's/\s*|\s*/,/g'
+        printStudents "$(( nArgs - 2 ))" "$groupIds" | sed 's/[[:space:]]*|[[:space:]]*/,/g'
     elif checkCmd "$line" '^lp [tf]$'; then
         flag="$(echo "$line" | cut -d ' ' -f 2 | tr 't' '1' | tr 'f' '0')"
         echo "UPDATE students SET login_permission = $flag" | sqlite3 "$dbFile"
