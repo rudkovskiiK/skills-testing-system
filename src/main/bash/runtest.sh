@@ -135,16 +135,18 @@ indent() {
 
 printStudents() {
     local students=""
-    if [ $# -eq 1 ]; then
-        local groupId="$1"
-        groupId="$(echo "SELECT id FROM groups WHERE id = $groupId" | sqlite3 "$dbFile")"
-        if [ -n "$groupId" ]; then
+    if [ $# -eq 2 ]; then
+        local nGroups="$1"
+        local groupIds="$2"
+        local nGroupsFound="$(echo "SELECT COUNT(*) FROM groups WHERE id IN ($groupIds)" | sqlite3 "$dbFile")"
+        if [ "$nGroupsFound" -ne "$nGroups" ]; then
+             echoYellow "Error: incorrect group id(s)!"
+             return 1
+        else
             students="$(echo "SELECT s.id, s.full_name, s.login_permission, g.name\
                        FROM students AS s JOIN groups AS g ON s.group_id = g.id\
-                       WHERE s.group_id = $groupId" | sqlite3 "$dbFile")"
-        else
-            echoYellow "Error: no such group id!"
-            return 1
+                       WHERE s.group_id IN ($groupIds)\
+                       ORDER BY s.full_name" | sqlite3 "$dbFile")"
         fi
     else
         students="$(echo "SELECT s.id, s.full_name, s.login_permission, g.name\
@@ -179,12 +181,12 @@ while read line; do
         printStudents | indent
     elif checkCmd "$line" '^s csv$'; then
         printStudents | sed 's/\s*|\s*/,/g'
-    elif checkCmd "$line" '^sg \d+$'; then
-        groupId="$(echo "$line" | cut -d ' ' -f 2)"
-        printStudents "$groupId" | indent
-    elif checkCmd "$line" '^sg \d+ csv$'; then
-        groupId="$(echo "$line" | cut -d ' ' -f 2)"
-        printStudents "$groupId" | sed 's/\s*|\s*/,/g'
+    elif checkCmd "$line" '^sg( \d+)+$'; then
+        groupIds="$(echo "$line" | cut -d ' ' -f 2- | tr ' ' ',')"
+        printStudents "$(( nArgs - 1 ))" "$groupIds" | indent
+    elif checkCmd "$line" '^sg (\d+ )+csv$'; then
+        groupIds="$(echo "$line" | cut -d ' ' -f 2-"$(( nArgs - 1 ))" | tr ' ' ',')"
+        printStudents "$(( nArgs - 2 ))" "$groupIds" | sed 's/\s*|\s*/,/g'
     elif checkCmd "$line" '^lp [tf]$'; then
         flag="$(echo "$line" | cut -d ' ' -f 2 | tr 't' '1' | tr 'f' '0')"
         echo "UPDATE students SET login_permission = $flag" | sqlite3 "$dbFile"
