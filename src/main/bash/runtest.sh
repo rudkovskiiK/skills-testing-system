@@ -202,8 +202,8 @@ while read line; do
     elif checkCmd "$line" '^lpg (\d+ )+[tf]$'; then
         groupIds="$(echo "$line" | cut -d ' ' -f 2-"$(( nArgs - 1 ))" | tr ' ' ',')"
         flag="$(echo "$line" | cut -d ' ' -f "$nArgs" | tr 't' '1' | tr 'f' '0')"
-        nGroupFound="$(echo "SELECT COUNT(*) FROM groups WHERE id IN ($groupIds)" | sqlite3 "$dbFile")"
-        if [ "$nGroupFound" -ne "$(( $nArgs - 2 ))" ]; then
+        nGroupsFound="$(echo "SELECT COUNT(*) FROM groups WHERE id IN ($groupIds)" | sqlite3 "$dbFile")"
+        if [ "$nGroupsFound" -ne "$(( $nArgs - 2 ))" ]; then
              echoYellow "Error: incorrect group id(s)!" | indent
         else
              echo "UPDATE students SET login_permission = $flag WHERE group_id IN ($groupIds)" | sqlite3 "$dbFile"
