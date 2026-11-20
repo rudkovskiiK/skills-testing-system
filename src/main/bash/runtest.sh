@@ -224,7 +224,7 @@ while read line; do
                 echo "current: ${allTasks[$currentTaskIndex]}" | indent
             fi
         fi
-    elif checkCmd "$line" '^stc \d+ \d+$'; then
+    elif checkCmd "$line" '^st \d+ \d+$'; then
         studentId="$(echo "$line" | cut -d ' ' -f 2)"
         taskId="$(echo "$line" | cut -d ' ' -f 3)"
         resultId="$(echo "SELECT id FROM results WHERE student_id = $studentId AND task_id = $taskId" | sqlite3 "$dbFile")"
@@ -305,7 +305,7 @@ while read line; do
         echo 'lps <student_ids> t|f - set the login permission flag for the specified students' | indent
         echo 'lpg <group_ids> t|f - set the login permission flag for all students in the specified groups' | indent
         echo "st <student_id> - show student task id's" | indent
-        echo "stc <student_id> <task_id> - show the description and code of the student's solution to the task" | indent
+        echo "st <student_id> <task_id> - show the description and code of the student's solution to the task" | indent
         echo 'start - web server start' | indent
         echo 'stop - web server stop' | indent
         echo 'log - print server log' | indent
