@@ -259,6 +259,16 @@ while read line; do
             echo -e "\033[35mdescription:\033[0m\n$description"
             echo -e "\033[35mcode:\033[0m\n$code"
         fi
+    elif checkCmd "$line" '^st \d+ \d+ set [tf]$'; then
+        studentId="$(echo "$line" | cut -d ' ' -f 2)"
+        taskId="$(echo "$line" | cut -d ' ' -f 3)"
+        flag="$(echo "$line" | cut -d ' ' -f 5 | tr 't' '1' | tr 'f' '0')"
+        resultId="$(echo "SELECT id FROM results WHERE student_id = $studentId AND task_id = $taskId" | sqlite3 "$dbFile")"
+        if [ -z "$resultId" ]; then
+            printNoResultReason "$studentId" "$taskId" | indent
+        else
+            echo "UPDATE results SET status = $flag WHERE id = $resultId" | sqlite3 "$dbFile"
+        fi
     elif checkCmd "$line" '^start$'; then
         pushd "$testDir" &> /dev/null
         java -jar "$STS_SERVER_PATH" --server.port=$serverPort &>> "log.txt" &
