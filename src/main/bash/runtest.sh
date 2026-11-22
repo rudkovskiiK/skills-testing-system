@@ -171,6 +171,28 @@ printStudents() {
     return 0
 }
 
+printNoResultReason() {
+    local studentId="$1"
+    local taskId="$2"
+    local query="SELECT id FROM students WHERE id = $studentId"
+    if [ -z "$(echo "$query" | sqlite3 "$dbFile")" ]; then
+        echoYellow "Error: no such student with id = $studentId!"
+        return 1
+    fi
+    query="SELECT id FROM tasks WHERE id = $taskId"
+    if [ -z "$(echo "$query" | sqlite3 "$dbFile")" ]; then
+        echoYellow "Error: no such task with id = $taskId!"
+        return 2
+    fi
+    query="SELECT * FROM students_tasks WHERE student_id = $studentId AND task_id = $taskId"
+    if [ -z "$(echo "$query" | sqlite3 "$dbFile")" ]; then
+        echoYellow "Error: Task with id = $taskId is not assigned to student with id = $studentId"
+        return 3
+    fi
+    echoYellow "Error: student with id = $studentId has not yet started solving task with id = $taskId!"
+    return 4
+}
+
 echo -en "\033[32m>> \033[0m"
 while read line; do
     line="$(echo "$line" | sed -E 's/[[:space:]]{2,}/ /g ; s/^ | $//g')"
@@ -230,18 +252,7 @@ while read line; do
         resultId="$(echo "SELECT id FROM results WHERE student_id = $studentId AND task_id = $taskId" | sqlite3 "$dbFile")"
 
         if [ -z "$resultId" ]; then
-            ns="$(echo "SELECT COUNT(*) FROM students WHERE id = $studentId" | sqlite3 "$dbFile")"
-            nt="$(echo "SELECT COUNT(*) FROM tasks WHERE id = $taskId" | sqlite3 "$dbFile")"
-            nst="$(echo "SELECT COUNT(*) FROM students_tasks WHERE student_id = $studentId AND task_id = $taskId" | sqlite3 "$dbFile")"
-            if [ "$ns" -eq 0 ]; then
-                echoYellow "Error: no such student with id = $studentId!" | indent
-            elif [ "$nt" -eq 0 ]; then
-                echoYellow "Error: no such task with id = $taskId!" | indent
-            elif [ "$nst" -eq 0 ]; then
-                echoYellow "Error: Task with id = $taskId is not assigned to student with id = $studentId" | indent
-            else
-                echoYellow "Error: student with id = $studentId has not yet started solving task with id = $taskId!" | indent
-            fi
+            printNoResultReason "$studentId" "$taskId" | indent
         else
             description="$(echo "SELECT description FROM tasks WHERE id = $taskId" | sqlite3 "$dbFile")"
             code="$(echo "SELECT code FROM results WHERE id = $resultId" | sqlite3 "$dbFile")"
