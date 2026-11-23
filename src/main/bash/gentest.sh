@@ -393,7 +393,7 @@ hashPng=""
 if ls *.png &> /dev/null; then
     hashPng="$(cat *.png | sha256sum | tr -d ' \-\n')"
 fi
-local hashJpeg=""
+hashJpeg=""
 if ls *.jpeg &> /dev/null; then
     hashJpeg="$(cat *.jpeg | sha256sum | tr -d ' \-\n')"
 fi
