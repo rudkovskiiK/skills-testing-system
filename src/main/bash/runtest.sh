@@ -255,9 +255,34 @@ while read line; do
             printNoResultReason "$studentId" "$taskId" | indent
         else
             description="$(echo "SELECT description FROM tasks WHERE id = $taskId" | sqlite3 "$dbFile")"
+            descTmpPath="$(mktemp)"
+            echo "$description" > "$descTmpPath"
+            language="$(echo "SELECT language FROM tasks WHERE id = $taskId" | sqlite3 "$dbFile")"
             code="$(echo "SELECT code FROM results WHERE id = $resultId" | sqlite3 "$dbFile")"
-            echo -e "\033[35mdescription:\033[0m\n$description"
-            echo -e "\033[35mcode:\033[0m\n$code"
+            codeTmpPath="$(mktemp)"
+            echo "$code" > "$codeTmpPath"
+            hashCorrectAnswer="$(echo "SELECT answer FROM tasks WHERE id = $taskId" | sqlite3 "$dbFile")"
+            runScript="$(echo "SELECT run_script FROM tasks WHERE id = $taskId" | sqlite3 "$dbFile")"
+            studentId="teacher_as_student"
+            pushd "$testDir" &> /dev/null
+            echo "$code" > "work-tmp/code/${studentId}.txt"
+            ./run-stud-code.sh "$studentId" "$answer" "$language" "$runScript"
+            outTmpPath="$(mktemp)"
+            cat "work-tmp/out/${studentId}.txt" | tail -n +2 > "$outTmpPath"
+            pushd "work-tmp/stud-home/${studentId}" &> /dev/null
+            imgsListTmpPath="$(mktemp)"
+            for imgPath in *.{png,jpeg}; do
+                if [ -f "$imgPath" ]; then
+                    echo "$imgPath" >> "$imgsListTmpPath"
+                fi
+            done
+            feh -f "$imgsListTmpPath" &
+            fehPid="$!"
+            popd &> /dev/null
+            popd &> /dev/null
+            batcat --paging=always --file-name 'description' "$descTmpPath" --file-name "code.$language" "$codeTmpPath" --file-name 'out' "$outTmpPath"
+            kill "$fehPid" 2> /dev/null
+            rm "$descTmpPath" "$codeTmpPath" "$outTmpPath" "$imgsListTmpPath"
         fi
     elif checkCmd "$line" '^st \d+ \d+ set [tf]$'; then
         studentId="$(echo "$line" | cut -d ' ' -f 2)"
@@ -326,7 +351,7 @@ while read line; do
         echo 'lps <student_ids> t|f - set the login permission flag for the specified students' | indent
         echo 'lpg <group_ids> t|f - set the login permission flag for all students in the specified groups' | indent
         echo "st <student_id> - show student task id's" | indent
-        echo "st <student_id> <task_id> - show the description and code of the student's solution to the task" | indent
+        echo "st <student_id> <task_id> - run a student's task and show the description, code, and result (including images)" | indent
         echo 'start - web server start' | indent
         echo 'stop - web server stop' | indent
         echo 'log - print server log' | indent
