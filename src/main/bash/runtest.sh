@@ -352,6 +352,7 @@ while read line; do
         echo 'lpg <group_ids> t|f - set the login permission flag for all students in the specified groups' | indent
         echo "st <student_id> - show student task id's" | indent
         echo "st <student_id> <task_id> - run a student's task and show the description, code, and result (including images)" | indent
+        echo "st <student_id> <task_id> set [tf] - change the status of a student's task" | indent
         echo 'start - web server start' | indent
         echo 'stop - web server stop' | indent
         echo 'log - print server log' | indent
